@@ -1,0 +1,14 @@
+name: Linux build
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ghcr.io/lballabio/quantlib-swig-devenv:python3
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build
+      run: |
+        make build
+    - name: Run
+      run: |
+        make test
