@@ -33,6 +33,8 @@
 #include <ql/processes/blackscholesprocess.hpp>
 #include <utility>
 
+// #include "utils_extract.hpp"
+
 namespace QuantLib {
 
     //! Pricing engine for barrier options using Monte Carlo simulation
@@ -75,7 +77,8 @@ namespace QuantLib {
                           Real requiredTolerance,
                           Size maxSamples,
                           bool isBiased,
-                          BigNatural seed);
+                          BigNatural seed,
+                          bool constantParameters);
         void calculate() const override {
             Real spot = process_->x0();
             QL_REQUIRE(spot > 0.0, "negative or null underlying given");
@@ -92,14 +95,10 @@ namespace QuantLib {
       protected:
         // McSimulation implementation
         TimeGrid timeGrid() const override;
-        ext::shared_ptr<path_generator_type> pathGenerator() const override {
-            TimeGrid grid = timeGrid();
-            typename RNG::rsg_type gen =
-                RNG::make_sequence_generator(grid.size()-1,seed_);
-            return ext::shared_ptr<path_generator_type>(
-                         new path_generator_type(process_,
-                                                 grid, gen, brownianBridge_));
-        }
+
+        // MCBarrierEngine_2 inheritates from McSimulation which has the method pathGenerator() we need to modify
+        ext::shared_ptr<path_generator_type> pathGenerator() const override;
+
         ext::shared_ptr<path_pricer_type> pathPricer() const override;
         // data members
         ext::shared_ptr<GeneralizedBlackScholesProcess> process_;
@@ -109,6 +108,13 @@ namespace QuantLib {
         bool isBiased_;
         bool brownianBridge_;
         BigNatural seed_;
+
+        /*
+        New attribute that will be used in pathGenerator() method
+        If true, we will generate the paths using a black scholes process with constant parameters extracted from the original black scholes process parameters
+        If false, the paths will be generated as usual using the original black scholes process
+        */
+        bool constantParameters;
     };
 
 
@@ -127,7 +133,10 @@ namespace QuantLib {
         MakeMCBarrierEngine_2& withMaxSamples(Size samples);
         MakeMCBarrierEngine_2& withBias(bool b = true);
         MakeMCBarrierEngine_2& withSeed(BigNatural seed);
+
+        // Needed to set the new attribute of MCBarrierEngine_2
         MakeMCBarrierEngine_2& withConstantParameters(bool b = true);
+
         // conversion to pricing engine
         operator ext::shared_ptr<PricingEngine>() const;
       private:
@@ -136,6 +145,9 @@ namespace QuantLib {
         Size steps_, stepsPerYear_, samples_, maxSamples_;
         Real tolerance_;
         BigNatural seed_ = 0;
+
+        // Needed to set the new attribute of MCBarrierEngine_2
+        bool constantParameters_;
     };
 
 
@@ -152,11 +164,12 @@ namespace QuantLib {
         Real requiredTolerance,
         Size maxSamples,
         bool isBiased,
-        BigNatural seed)
+        BigNatural seed,
+        bool constantParameters) // Needed to set the new attribute of MCBarrierEngine_2
     : McSimulation<SingleVariate, RNG, S>(antitheticVariate, false), process_(std::move(process)),
       timeSteps_(timeSteps), timeStepsPerYear_(timeStepsPerYear), requiredSamples_(requiredSamples),
       maxSamples_(maxSamples), requiredTolerance_(requiredTolerance), isBiased_(isBiased),
-      brownianBridge_(brownianBridge), seed_(seed) {
+      brownianBridge_(brownianBridge), seed_(seed), constantParameters(constantParameters) { // Needed to set the new attribute of MCBarrierEngine_2
         QL_REQUIRE(timeSteps != Null<Size>() ||
                    timeStepsPerYear != Null<Size>(),
                    "no time steps provided");
@@ -228,12 +241,69 @@ namespace QuantLib {
         }
     }
 
+    // Redefinition of pathGenerator() method to take into account the changes imposed by the value of constantParameters attribute
+    template <class RNG, class S>
+    inline
+    ext::shared_ptr<typename MCBarrierEngine_2<RNG,S>::path_generator_type>
+    MCBarrierEngine_2<RNG,S>::pathGenerator() const {
+
+        ext::shared_ptr<GeneralizedBlackScholesProcess> process =
+            ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
+                this->process_);
+
+        Size dimensions = process->factors();
+        TimeGrid grid = this->timeGrid();
+        typename RNG::rsg_type generator =
+            RNG::make_sequence_generator(dimensions*(grid.size()-1),this->seed_);
+        
+        // NEW : if we want to use constant parameters for generating paths
+        if (this->constantParameters) {
+            
+            // maturity date is retrieved through BarrierOption instance that we want to price
+            Date maturityDate = this->arguments_.exercise->lastDate();
+            DayCounter rfdc  = process->riskFreeRate()->dayCounter();
+            DayCounter divdc = process->dividendYield()->dayCounter();
+           
+            /*
+            Constant parameters are extracted from the original process parameters (term structures)
+            They are based on maturity date of the product priced, using zero rates
+            I based on method calculate of class BinomialConvertibleEngine, in which the same operation of extracting constant parameters is done
+            */   
+            Volatility v = process->blackVolatility()->blackVol(maturityDate, process->x0());
+            Rate riskFreeRate = process->riskFreeRate()->zeroRate(maturityDate, rfdc, Continuous, NoFrequency);
+            Rate q = process->dividendYield()->zeroRate(maturityDate, divdc, Continuous, NoFrequency);
+            
+            // Convert the constants to Handle<Quote> as expected from the constructor of ConstantBlackScholesProcess
+            Handle<Quote> underlying(ext::shared_ptr<Quote>(new SimpleQuote(process->x0())));
+            Handle<Quote> flatRiskFree(ext::shared_ptr<Quote>(new SimpleQuote(riskFreeRate)));
+            Handle<Quote> flatDividend(ext::shared_ptr<Quote>(new SimpleQuote(q)));
+            Handle<Quote> flatVol(ext::shared_ptr<Quote>(new SimpleQuote(v)));
+
+            ext::shared_ptr<ConstantBlackScholesProcess> constantProcess(
+            new ConstantBlackScholesProcess(underlying, flatDividend, flatRiskFree, flatVol));
+
+            /*
+            The path generator type will be set according to our new constant process
+            i.e. generated paths will be based on the constant process
+            */
+            return ext::shared_ptr<typename MCBarrierEngine_2<RNG,S>::path_generator_type>(
+                new path_generator_type(constantProcess, grid, generator, this->brownianBridge_));
+
+        } else {
+
+            return ext::shared_ptr<typename MCBarrierEngine_2<RNG,S>::path_generator_type>(
+                new path_generator_type(process, grid, generator, this->brownianBridge_));
+
+        }
+
+    }
+
 
     template <class RNG, class S>
     inline MakeMCBarrierEngine_2<RNG, S>::MakeMCBarrierEngine_2(
         ext::shared_ptr<GeneralizedBlackScholesProcess> process)
     : process_(std::move(process)), steps_(Null<Size>()), stepsPerYear_(Null<Size>()),
-      samples_(Null<Size>()), maxSamples_(Null<Size>()), tolerance_(Null<Real>()) {}
+      samples_(Null<Size>()), maxSamples_(Null<Size>()), tolerance_(Null<Real>()), constantParameters_(false) {} // Needed to set the new attribute of MCBarrierEngine_2
 
     template <class RNG, class S>
     inline MakeMCBarrierEngine_2<RNG,S>&
@@ -307,7 +377,8 @@ namespace QuantLib {
 
     template <class RNG, class S>
     inline MakeMCBarrierEngine_2<RNG,S>&
-    MakeMCBarrierEngine_2<RNG,S>::withConstantParameters(bool b) {
+    MakeMCBarrierEngine_2<RNG,S>::withConstantParameters(bool b) { // Needed to set the new attribute of MCBarrierEngine_2
+        constantParameters_ = b;
         return *this;
     }
 
@@ -327,7 +398,8 @@ namespace QuantLib {
                                      samples_, tolerance_,
                                      maxSamples_,
                                      biased_,
-                                     seed_));
+                                     seed_,
+                                     constantParameters_)); // Needed to set the new attribute of MCBarrierEngine_2
     }
 
 }
