@@ -30,6 +30,7 @@
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvariancecurve.hpp>
+#include "utils.hpp"
 
 namespace QuantLib {
 
@@ -191,28 +192,29 @@ namespace QuantLib {
         // NEW : if we want to use constant parameters for generating paths
         if (this->constantParameters) {
             
-            // maturity date is retrieved through MCVanillaEngine, which keeps the VanillaOption instance that we want to price
+            // maturity date is retrieved through VanillaOption instance that we want to price
             Date maturityDate = this->arguments_.exercise->lastDate();
-            DayCounter rfdc  = process->riskFreeRate()->dayCounter();
-            DayCounter divdc = process->dividendYield()->dayCounter();
 
-            /*
-            Constant parameters are extracted from the original process parameters (term structures)
-            They are based on maturity date of the product priced, using zero rates
-            I based on method calculate of class BinomialConvertibleEngine, in which the same operation of extracting constant parameters is done
-            */
-            Volatility v = process->blackVolatility()->blackVol(maturityDate, process->x0());
-            Rate riskFreeRate = process->riskFreeRate()->zeroRate(maturityDate, rfdc, Continuous, NoFrequency);
-            Rate q = process->dividendYield()->zeroRate(maturityDate, divdc, Continuous, NoFrequency);
+            // Declare variables
+            Rate riskFreeRate;
+            Rate dividendYield;
+            Volatility volatility;
+            // Extract constant parameters
+            std::tie(riskFreeRate, dividendYield, volatility) = extractConstantParameters(process, maturityDate);
             
-            // Convert the constants to Handle<Quote> as expected from the constructor of ConstantBlackScholesProcess
-            Handle<Quote> underlying(ext::shared_ptr<Quote>(new SimpleQuote(process->x0())));
-            Handle<Quote> flatRiskFree(ext::shared_ptr<Quote>(new SimpleQuote(riskFreeRate)));
-            Handle<Quote> flatDividend(ext::shared_ptr<Quote>(new SimpleQuote(q)));
-            Handle<Quote> flatVol(ext::shared_ptr<Quote>(new SimpleQuote(v)));
+            
+            // Declare variables
+            Handle<Quote> underlying;
+            Handle<Quote> flatRiskFree;
+            Handle<Quote> flatDividend;
+            Handle<Quote> flatVol;
+            // Convert constant parameters to Handle<Quote>
+            std::tie(underlying, flatRiskFree, flatDividend, flatVol) = convertToQuoteHandles(process->x0(), riskFreeRate, dividendYield, volatility);
 
+            // Create ConstantBlackScholesProcess using Handle<Quote>
             ext::shared_ptr<ConstantBlackScholesProcess> constantProcess(
             new ConstantBlackScholesProcess(underlying, flatDividend, flatRiskFree, flatVol));
+            
 
             /*
             The path generator type will be set according to our new constant process

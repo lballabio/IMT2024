@@ -15,7 +15,8 @@ namespace QuantLib {
 
         /*
         StochasticProcess1D : dx_t = \mu(t, x_t)dt + \sigma(t, x_t)dW_t
-        To build this class, I based on GeneralizedBlackScholesProcess : d\ln S(t) = (r(t) - q(t) - \frac{\sigma(t, S)^2}{2}) dt + \sigma dW_t
+        This class is based on GeneralizedBlackScholesProcess and its associated equation : 
+        d\ln S(t) = (r(t) - q(t) - \frac{\sigma(t, S)^2}{2}) dt + \sigma dW_t
         Here however, r, q and \sigma are constant
         */
 
@@ -25,10 +26,10 @@ namespace QuantLib {
             /*
             Handle : copies of a given handle share a link to an object; when the link is made to point to another object, all copies are notified and
             allow their holders to access the new pointee. Moreover, it forwards any notification from the pointed objects to their observers
+            (see Observer Design Pattern)
 
-            I use Handle here, to be consistent with other classes that implement StochasticProcess1D / StochasticProcess
-            (see GeneralizedBlackScholesProcess for instance)
-            Is it useful here ? No if this class purpose is only to be used in the MC Engines, surely yes otherwise...
+            We use Handle<Quote> to avoid having to declare a new ConstantBlackScholesProcess if one of the 4 values below were to change. 
+            Handle allows to dynamically update the value of the Quote it references.
             */
 
             Handle<Quote> x0,           // underlying initial value
@@ -45,8 +46,10 @@ namespace QuantLib {
         );
 
         /*
-        We need to implement drift, diffusion, apply and stdDeviation methods as they appear in evolve method
-        evolve method is essential as it enables to compute the asset value after a time interval dt according to the given discretization
+        We need to implement drift, diffusion and apply methods so that the stochastic process is indeed governed by the aforementioned equation
+        
+        Implementing our own apply methods means that the evolve method will return the desired result because it only relies on the apply method. 
+        The evolve method is essential as it enables to compute the asset value after a time interval dt according to the given discretization
         It is thus the main component to generate the paths in a MC simulation
 
         Indeed, the way random paths are generated go back to MonteCarloModel class (present in McSimulation, in turn present in each MC engine)
@@ -62,8 +65,6 @@ namespace QuantLib {
         Real drift(Time t, Real x) const override;
         Real diffusion(Time t, Real x) const override;
         Real apply(Real x0, Real dx) const override;
-        Real stdDeviation(Time t0, Real x0, Time dt) const override;
-        Real evolve(Time t0, Real x0, Time dt, Real dw) const override;
     
 
     private:

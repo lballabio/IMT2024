@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "memory": "cpp",
+        "initializer_list": "cpp",
+        "utility": "cpp",
+        "vector": "cpp",
+        "xstring": "cpp",
+        "xutility": "cpp",
+        "chrono": "cpp",
+        "optional": "cpp",
+        "system_error": "cpp"
+    }
+}
