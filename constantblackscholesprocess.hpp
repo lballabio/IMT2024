@@ -32,10 +32,10 @@ namespace QuantLib {
             Handle allows to dynamically update the value of the Quote it references.
             */
 
-            Handle<Quote> x0,           // underlying initial value
-            Handle<Quote> dividend,     // dividend yield
-            Handle<Quote> riskFree,     // risk-free rate
-            Handle<Quote> blackVol,     // volatility
+            double x0,           // underlying initial value
+            Rate dividend,     // dividend yield
+            Rate riskFree,     // risk-free rate
+            Volatility blackVol,     // volatility
             const ext::shared_ptr<discretization>& d = ext::shared_ptr<discretization>(new EulerDiscretization)
 
             /*
@@ -48,8 +48,7 @@ namespace QuantLib {
         /*
         We need to implement drift, diffusion and apply methods so that the stochastic process is indeed governed by the aforementioned equation
         
-        Implementing our own apply methods means that the evolve method will return the desired result because it only relies on the apply method. 
-        The evolve method is essential as it enables to compute the asset value after a time interval dt according to the given discretization
+        Implementing our own apply methods means that the evolve method will return the desired result because it only relies on theis essential as it enables to compute the asset value after a time interval dt according to the given discretization
         It is thus the main component to generate the paths in a MC simulation
 
         Indeed, the way random paths are generated go back to MonteCarloModel class (present in McSimulation, in turn present in each MC engine)
@@ -68,9 +67,9 @@ namespace QuantLib {
     
 
     private:
-        Handle<Quote> x0_;
-        Handle<Quote> riskFreeRate_, dividendYield_;
-        Handle<Quote> blackVolatility_;
+        double x0_;
+        Rate riskFreeRate_, dividendYield_;
+        Volatility blackVolatility_;
     
     };
 

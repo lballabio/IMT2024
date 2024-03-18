@@ -14,37 +14,24 @@
 
 using namespace QuantLib;
 
-// Function to extract constant parameters from process
-inline std::tuple<Rate, Rate, Volatility> extractConstantParameters(
+// Function to create a ConstantBlackScholesProcess object with constant parameters
+inline ext::shared_ptr<ConstantBlackScholesProcess> createConstantBlackScholesProcess(
     const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
-    const Date& maturityDate) {
+    const Date& maturityDate, Real strike) {
 
-    /*
-        Constant parameters are extracted from the original process parameters (term structures)
-        They are based on maturity date of the product priced, using zero rates
-        Based on the class BinomialConvertibleEngine, in which the same operation of extracting constant parameters is done
-    */
-    
+    // Extract constant parameters
     DayCounter rfdc = process->riskFreeRate()->dayCounter();
     DayCounter divdc = process->dividendYield()->dayCounter();
-
-    Volatility v = process->blackVolatility()->blackVol(maturityDate, process->x0());
+    Volatility v = process->blackVolatility()->blackVol(maturityDate, strike);
     Rate riskFreeRate = process->riskFreeRate()->zeroRate(maturityDate, rfdc, Continuous, NoFrequency);
     Rate q = process->dividendYield()->zeroRate(maturityDate, divdc, Continuous, NoFrequency);
 
-    return std::make_tuple(riskFreeRate, q, v);
+    // Create ConstantBlackScholesProcess using extracted parameters
+    return ext::make_shared<ConstantBlackScholesProcess>(
+        process->x0(), q, riskFreeRate, v);
 }
 
-// Function to convert constant parameters to Handle<Quote>
-inline std::tuple<Handle<Quote>, Handle<Quote>, Handle<Quote>, Handle<Quote>>
-convertToQuoteHandles(double x0, Rate riskFreeRate, Rate dividendYield, Volatility volatility) {
-    Handle<Quote> underlying(ext::make_shared<SimpleQuote>(x0));
-    Handle<Quote> flatRiskFree(ext::make_shared<SimpleQuote>(riskFreeRate));
-    Handle<Quote> flatDividend(ext::make_shared<SimpleQuote>(dividendYield));
-    Handle<Quote> flatVol(ext::make_shared<SimpleQuote>(volatility));
-    
-    return std::make_tuple(underlying, flatRiskFree, flatDividend, flatVol);
-}
+
 
 #endif // UTILS_HPP
 

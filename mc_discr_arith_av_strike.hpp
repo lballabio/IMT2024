@@ -143,35 +143,22 @@ namespace QuantLib {
         // NEW : if we want to use constant parameters for generating paths
         if (this->constantParameters) {
             
-            // maturity date is retrieved through DiscreteAveragingAsianOption instance that we want to price
+            // maturity date is retrieved through BarrierOption instance that we want to price
             Date maturityDate = this->arguments_.exercise->lastDate();
 
-            // Declare variables
-            Rate riskFreeRate;
-            Rate dividendYield;
-            Volatility volatility;
-            // Extract constant parameters
-            std::tie(riskFreeRate, dividendYield, volatility) = extractConstantParameters(process, maturityDate);
-            
-            
-            // Declare variables
-            Handle<Quote> underlying;
-            Handle<Quote> flatRiskFree;
-            Handle<Quote> flatDividend;
-            Handle<Quote> flatVol;
-            // Convert constant parameters to Handle<Quote>
-            std::tie(underlying, flatRiskFree, flatDividend, flatVol) = convertToQuoteHandles(process->x0(), riskFreeRate, dividendYield, volatility);
+            // Get the strike from the payoff
+            ext::shared_ptr<PlainVanillaPayoff> payoff =
+                ext::dynamic_pointer_cast<PlainVanillaPayoff>(this->arguments_.payoff);
+            Real strike = payoff->strike();
 
-            // Create ConstantBlackScholesProcess using Handle<Quote>
-            ext::shared_ptr<ConstantBlackScholesProcess> constantProcess(
-            new ConstantBlackScholesProcess(underlying, flatDividend, flatRiskFree, flatVol));
+            // Create ConstantBlackScholesProcess using constant parameters extracted from the original process
+            ext::shared_ptr<ConstantBlackScholesProcess> constantProcess = createConstantBlackScholesProcess(process, maturityDate, strike);
             
-
             /*
             The path generator type will be set according to our new constant process
             i.e. generated paths will be based on the constant process
             */
-            return ext::shared_ptr<typename MCDiscreteArithmeticASEngine_2<RNG,S>::path_generator_type>(
+            return ext::shared_ptr<typename MCBarrierEngine_2<RNG,S>::path_generator_type>(
                 new path_generator_type(constantProcess, grid, generator, this->brownianBridge_));
 
         } else {
