@@ -24,9 +24,8 @@ inline ext::shared_ptr<ConstantBlackScholesProcess> createConstantBlackScholesPr
     Date maturityDate = arguments.exercise->lastDate();
 
     // Get the strike from the payoff
-    ext::shared_ptr<PlainVanillaPayoff> payoff =
-        ext::dynamic_pointer_cast<PlainVanillaPayoff>(arguments.payoff);
-    QL_REQUIRE(payoff, "non-plain payoff given");
+    ext::shared_ptr<StrikedTypePayoff> payoff =
+        ext::dynamic_pointer_cast<StrikedTypePayoff>(arguments.payoff);
     Real strike = payoff->strike();
 
     // Extract constant parameters
