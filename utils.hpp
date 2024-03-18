@@ -26,6 +26,7 @@ inline ext::shared_ptr<ConstantBlackScholesProcess> createConstantBlackScholesPr
     // Get the strike from the payoff
     ext::shared_ptr<PlainVanillaPayoff> payoff =
         ext::dynamic_pointer_cast<PlainVanillaPayoff>(arguments.payoff);
+    QL_REQUIRE(payoff, "non-plain payoff given");
     Real strike = payoff->strike();
 
     // Extract constant parameters
