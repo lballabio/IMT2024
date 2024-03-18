@@ -14,10 +14,19 @@
 
 using namespace QuantLib;
 
+template <class OptionArguments>
 // Function to create a ConstantBlackScholesProcess object with constant parameters
 inline ext::shared_ptr<ConstantBlackScholesProcess> createConstantBlackScholesProcess(
     const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
-    const Date& maturityDate, Real strike) {
+    const OptionArguments& arguments) {
+
+    // maturity date is retrieved through the option instance that we want to price
+    Date maturityDate = arguments.exercise->lastDate();
+
+    // Get the strike from the payoff
+    ext::shared_ptr<PlainVanillaPayoff> payoff =
+        ext::dynamic_pointer_cast<PlainVanillaPayoff>(arguments.payoff);
+    Real strike = payoff->strike();
 
     // Extract constant parameters
     DayCounter rfdc = process->riskFreeRate()->dayCounter();

@@ -142,17 +142,8 @@ namespace QuantLib {
         
         // NEW : if we want to use constant parameters for generating paths
         if (this->constantParameters) {
-            
-            // maturity date is retrieved through BarrierOption instance that we want to price
-            Date maturityDate = this->arguments_.exercise->lastDate();
-
-            // Get the strike from the payoff
-            ext::shared_ptr<PlainVanillaPayoff> payoff =
-                ext::dynamic_pointer_cast<PlainVanillaPayoff>(this->arguments_.payoff);
-            Real strike = payoff->strike();
-
             // Create ConstantBlackScholesProcess using constant parameters extracted from the original process
-            ext::shared_ptr<ConstantBlackScholesProcess> constantProcess = createConstantBlackScholesProcess(process, maturityDate, strike);
+            ext::shared_ptr<ConstantBlackScholesProcess> constantProcess = createConstantBlackScholesProcess(process, this->arguments_);
             
             /*
             The path generator type will be set according to our new constant process
