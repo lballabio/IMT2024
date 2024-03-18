@@ -207,7 +207,7 @@ namespace QuantLib {
             The path generator type will be set according to our new constant process
             i.e. generated paths will be based on the constant process
             */
-            return ext::shared_ptr<typename MCBarrierEngine_2<RNG,S>::path_generator_type>(
+            return ext::shared_ptr<typename MCEuropeanEngine_2<RNG,S>::path_generator_type>(
                 new path_generator_type(constantProcess, grid, generator, this->brownianBridge_));
 
         } else {
