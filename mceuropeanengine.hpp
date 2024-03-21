@@ -97,7 +97,7 @@ namespace QuantLib {
                                                                                     generator,
                                                                                     MCVanillaEngine<SingleVariate, RNG, S>::brownianBridge_));
             } else {
-                //ext::shared_ptr<GeneralizedBlackScholesProcess> process_;  // pas sur
+                //ext::shared_ptr<GeneralizedBlackScholesProcess> process_;  
                 return ext::shared_ptr<path_generator_type>(
                         new path_generator_type(MCVanillaEngine<SingleVariate, RNG, S>::process_, grid,
                                                 generator, MCVanillaEngine<SingleVariate, RNG, S>::brownianBridge_));
