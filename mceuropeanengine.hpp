@@ -60,9 +60,13 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed);
+             BigNatural seed,
+             bool usingConstantParameters);
       protected:
         boost::shared_ptr<path_pricer_type> pathPricer() const;
+        ext::shared_ptr<path_generator_type> pathGenerator() const override;
+
+        bool usingConstantParameters;
     };
 
     //! Monte Carlo European engine factory
@@ -80,6 +84,7 @@ namespace QuantLib {
         MakeMCEuropeanEngine_2& withMaxSamples(Size samples);
         MakeMCEuropeanEngine_2& withSeed(BigNatural seed);
         MakeMCEuropeanEngine_2& withAntitheticVariate(bool b = true);
+
         MakeMCEuropeanEngine_2& withConstantParameters(bool b = true);
         // conversion to pricing engine
         operator boost::shared_ptr<PricingEngine>() const;
@@ -90,6 +95,8 @@ namespace QuantLib {
         Real tolerance_;
         bool brownianBridge_;
         BigNatural seed_;
+
+        bool usingConstantParameters_;
     };
 
     class EuropeanPathPricer_2 : public PathPricer<Path> {
@@ -117,7 +124,8 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed)
+             BigNatural seed,
+             bool usingConstantParameters)
     : MCVanillaEngine<SingleVariate,RNG,S>(process,
                                            timeSteps,
                                            timeStepsPerYear,
@@ -127,7 +135,7 @@ namespace QuantLib {
                                            requiredSamples,
                                            requiredTolerance,
                                            maxSamples,
-                                           seed) {}
+                                           seed), usingConstantParameters(usingConstantParameters) {}
 
 
     template <class RNG, class S>
@@ -153,6 +161,44 @@ namespace QuantLib {
               process->riskFreeRate()->discount(this->timeGrid().back())));
     }
 
+    template <class RNG, class S>
+    inline ext::shared_ptr<typename MCEuropeanEngine_2<RNG,S>::path_generator_type>
+    MCEuropeanEngine_2<RNG,S>::pathGenerator() const {
+        
+        // As before (see MCVanillaEngine)
+        ext::shared_ptr<GeneralizedBlackScholesProcess> generalProcess =
+            ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
+                this->process_);
+
+        Size dimensions = generalProcess->factors();
+        TimeGrid grid = this->timeGrid();
+        typename RNG::rsg_type generator =
+            RNG::make_sequence_generator(dimensions*(grid.size()-1),this->seed_);
+        
+        
+        if (this->usingConstantParameters) {
+            
+            Time currentTime = grid.back();
+            double strike = ext::dynamic_pointer_cast<StrikedTypePayoff>(MCVanillaEngine<SingleVariate, RNG, S>::arguments_.payoff)->strike();
+            double riskFreeRate_ = generalProcess->riskFreeRate()->zeroRate(currentTime, Continuous);
+            double dividend_ = generalProcess->dividendYield()->zeroRate(currentTime, Continuous);
+            double volatility_ = generalProcess->blackVolatility()->blackVol(currentTime, strike);
+            double underlyingValue_ = generalProcess->x0();
+
+            ext::shared_ptr<ConstantBlackScholesProcess> constantProcess(new ConstantBlackScholesProcess(underlyingValue_, riskFreeRate_, volatility_, dividend_));
+
+             return ext::shared_ptr<typename MCEuropeanEngine_2<RNG,S>::path_generator_type>(
+                new path_generator_type(constantProcess, grid, generator, this->brownianBridge_));
+        }
+        else {
+            
+    
+            return ext::shared_ptr<typename MCEuropeanEngine_2<RNG,S>::path_generator_type>(
+                new path_generator_type(generalProcess, grid, generator, this->brownianBridge_));
+
+        }
+
+    }
 
     template <class RNG, class S>
     inline MakeMCEuropeanEngine_2<RNG,S>::MakeMCEuropeanEngine_2(
@@ -160,7 +206,7 @@ namespace QuantLib {
     : process_(process), antithetic_(false),
       steps_(Null<Size>()), stepsPerYear_(Null<Size>()),
       samples_(Null<Size>()), maxSamples_(Null<Size>()),
-      tolerance_(Null<Real>()), brownianBridge_(false), seed_(0) {}
+      tolerance_(Null<Real>()), brownianBridge_(false), seed_(0), usingConstantParameters_(false) {}
 
     template <class RNG, class S>
     inline MakeMCEuropeanEngine_2<RNG,S>&
@@ -228,6 +274,7 @@ namespace QuantLib {
     template <class RNG, class S>
     inline MakeMCEuropeanEngine_2<RNG,S>&
     MakeMCEuropeanEngine_2<RNG,S>::withConstantParameters(bool b) {
+        usingConstantParameters_ = b;
         return *this;
     }
 
@@ -247,7 +294,8 @@ namespace QuantLib {
                                       antithetic_,
                                       samples_, tolerance_,
                                       maxSamples_,
-                                      seed_));
+                                      seed_,
+                                      usingConstantParameters_));
     }
 
 
