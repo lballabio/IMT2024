@@ -60,7 +60,4 @@ Real constantblackscholesprocess::apply(Real x0, Real dx) const {
     return x0 * std::exp(dx);
 }
 
-Real constantblackscholesprocess::apply(Real x0, Real dx) const {
-    return x0 * std::exp(dx);
-}
 
