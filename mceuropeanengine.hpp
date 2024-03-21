@@ -89,12 +89,6 @@ namespace QuantLib {
                 double const_volatility_ = blackSC_process->blackVolatility()->blackVol(time, strike);
                 double spot = blackSC_process->x0();
 
-                std::cout << "When the constant dividend is " << const_div << std::endl;
-                std::cout << "And the constant risk free rate is " << const_rf << std::endl;
-                std::cout << "And the volatility is " << const_volatility_ << std::endl;
-                std::cout << "With a value for the spot " << spot << std::endl;
-
-
                 //constantblackscholesprocess* const_blackSC_process = new constantblackscholesprocess(spot, const_rf, const_div, const_volatility_);
                 ext::shared_ptr <constantblackscholesprocess> const_blackSC_process(
                         new constantblackscholesprocess(spot, const_rf, const_div, const_volatility_));
