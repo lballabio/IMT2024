@@ -3,8 +3,8 @@
 
 constantblackscholesprocess::constantblackscholesprocess() :StochasticProcess1D(ext::make_shared<EulerDiscretization>()) {
     spot = 100.;
-    rf_rate = 0.05;
-    dividend = 3.;
+    rf_rate = 0.1;
+    dividend = 4.;
     volatility = 1.;
 }
 
