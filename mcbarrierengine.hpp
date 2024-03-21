@@ -248,20 +248,21 @@ namespace QuantLib {
     ext::shared_ptr<typename MCBarrierEngine_2<RNG,S>::path_generator_type>
     MCBarrierEngine_2<RNG,S>::pathGenerator() const {
 
-        ext::shared_ptr<GeneralizedBlackScholesProcess> process =
-            ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
-                this->process_);
-
-        Size dimensions = process->factors();
+        // As before (see original version of MCBarrierEngine)
         TimeGrid grid = this->timeGrid();
         typename RNG::rsg_type generator =
-            RNG::make_sequence_generator(dimensions*(grid.size()-1),this->seed_);
+            RNG::make_sequence_generator(grid.size()-1,this->seed_);
         
         // NEW : if we want to use constant parameters for generating paths
         if (this->constantParameters) {
+
+            /*
+            NO need to cast the process to a GeneralizedBlackScholesProcess here as it is 
+            already a GeneralizedBlackScholesProcess
+            */
             
             // Create ConstantBlackScholesProcess using constant parameters extracted from the original process
-            ext::shared_ptr<ConstantBlackScholesProcess> constantProcess = createConstantBlackScholesProcess(process, this->arguments_);
+            ext::shared_ptr<ConstantBlackScholesProcess> constantProcess = createConstantBlackScholesProcess(this->process_, this->arguments_);
             
             /*
             The path generator type will be set according to our new constant process
@@ -272,8 +273,9 @@ namespace QuantLib {
 
         } else {
 
+            // As before (see original version of MCBarrierEngine)
             return ext::shared_ptr<typename MCBarrierEngine_2<RNG,S>::path_generator_type>(
-                new path_generator_type(process, grid, generator, this->brownianBridge_));
+                new path_generator_type(this->process_, grid, generator, this->brownianBridge_));
 
         }
 

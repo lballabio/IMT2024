@@ -180,17 +180,22 @@ namespace QuantLib {
     MCEuropeanEngine_2<RNG,S>::pathGenerator() const {
         
         // As before (see MCVanillaEngine)
-        ext::shared_ptr<GeneralizedBlackScholesProcess> process =
-            ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
-                this->process_);
-
-        Size dimensions = process->factors();
+        Size dimensions = this->process_->factors();
         TimeGrid grid = this->timeGrid();
         typename RNG::rsg_type generator =
             RNG::make_sequence_generator(dimensions*(grid.size()-1),this->seed_);
         
         // NEW : if we want to use constant parameters for generating paths
         if (this->constantParameters) {
+
+            /*
+            We need to cast the process (which is currently a StochasticProcess) to a
+            GeneralizedBlackScholesProcess as our method createConstantBlackScholesProcess takes 
+            such class in argument 
+            */
+            ext::shared_ptr<GeneralizedBlackScholesProcess> process =
+            ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
+                this->process_);
             
             // Create ConstantBlackScholesProcess using constant parameters extracted from the original process
             ext::shared_ptr<ConstantBlackScholesProcess> constantProcess = createConstantBlackScholesProcess(process, this->arguments_);
@@ -206,7 +211,7 @@ namespace QuantLib {
             
             // As before (see MCVanillaEngine)
             return ext::shared_ptr<typename MCEuropeanEngine_2<RNG,S>::path_generator_type>(
-                new path_generator_type(process, grid, generator, this->brownianBridge_));
+                new path_generator_type(this->process_, grid, generator, this->brownianBridge_));
 
         }
 

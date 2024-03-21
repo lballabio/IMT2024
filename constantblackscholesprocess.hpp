@@ -15,7 +15,7 @@ namespace QuantLib {
 
         /*
         StochasticProcess1D : dx_t = \mu(t, x_t)dt + \sigma(t, x_t)dW_t
-        This class is based on GeneralizedBlackScholesProcess and its associated equation : 
+        This class is inspired from the class GeneralizedBlackScholesProcess and its associated equation : 
         d\ln S(t) = (r(t) - q(t) - \frac{\sigma(t, S)^2}{2}) dt + \sigma dW_t
         Here however, r, q and \sigma are constant
         */
@@ -23,19 +23,10 @@ namespace QuantLib {
     public:
         ConstantBlackScholesProcess(
 
-            /*
-            Handle : copies of a given handle share a link to an object; when the link is made to point to another object, all copies are notified and
-            allow their holders to access the new pointee. Moreover, it forwards any notification from the pointed objects to their observers
-            (see Observer Design Pattern)
-
-            We use Handle<Quote> to avoid having to declare a new ConstantBlackScholesProcess if one of the 4 values below were to change. 
-            Handle allows to dynamically update the value of the Quote it references.
-            */
-
-            double x0,           // underlying initial value
-            Rate dividend,     // dividend yield
-            Rate riskFree,     // risk-free rate
-            Volatility blackVol,     // volatility
+            double x0,              // underlying initial value
+            Rate dividend,          // dividend yield
+            Rate riskFree,          // risk-free rate
+            Volatility blackVol,    // volatility
             const ext::shared_ptr<discretization>& d = ext::shared_ptr<discretization>(new EulerDiscretization)
 
             /*
@@ -53,11 +44,11 @@ namespace QuantLib {
 
         Indeed, the way random paths are generated go back to MonteCarloModel class (present in McSimulation, in turn present in each MC engine)
         with a variable of type PathGenerator. Also notice that the path generator type is set in the class McSimulation through the method pathGenerator()
-        This class PathGenerator has a method next that computes the next point of a random path, and uses the methods x0 and evolve
+        This class PathGenerator has a method next that computes a random path, and uses the methods x0 and evolve
 
         Notice this variable of type PathGenerator is the only variable of interest in our MonteCarloModel class as the other variables do not
         relate to the characteristics of the asset underlying stochastic process
-        For instance, the variable of type PathPricer, is only responsible for pricing the paths, this operation being independent from the stochastic process
+        For instance, the variable of type PathPricer, is only responsible for pricing the paths, this operation being independent from the stochastic process parameters
         */
 
         Real x0() const override;

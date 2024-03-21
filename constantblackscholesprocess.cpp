@@ -17,9 +17,7 @@ namespace QuantLib {
     d\ln S(t) = (r - q - \frac{\sigma^2}{2}) dt + \sigma dW_t
     */
 
-
-    // NB : as we are using Handle<Quote>, we will have to use the value() method to retrieve their value
-
+   // Get initial value
     Real ConstantBlackScholesProcess::x0() const {
         return x0_;
     }
