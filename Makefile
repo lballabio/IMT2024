@@ -9,5 +9,5 @@ test: main
 	./main
 
 main: *.hpp *.cpp
-	g++ *.cpp `quantlib-config --cflags` -g0 -O3 `quantlib-config --libs` -o main
+	g++ -I/opt/homebrew/opt/boost/include *.cpp `quantlib-config --cflags` -g0 -O3 `quantlib-config --libs` -o main
 

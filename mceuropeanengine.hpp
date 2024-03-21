@@ -30,6 +30,7 @@
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvariancecurve.hpp>
+#include "constantblackscholesprocess.hpp"
 
 namespace QuantLib {
 
@@ -60,9 +61,15 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed);
+             BigNatural seed,
+             bool useConstantParams);
       protected:
-        boost::shared_ptr<path_pricer_type> pathPricer() const;
+        boost::shared_ptr<path_pricer_type> pathPricer() const override;
+
+        // Override the path generator to use the ConstantBlackScholes process when generating paths
+        ext::shared_ptr<path_generator_type> pathGenerator() const override;
+
+        bool use_constant_params_;
     };
 
     //! Monte Carlo European engine factory
@@ -90,6 +97,7 @@ namespace QuantLib {
         Real tolerance_;
         bool brownianBridge_;
         BigNatural seed_;
+        bool use_constant_params_;
     };
 
     class EuropeanPathPricer_2 : public PathPricer<Path> {
@@ -117,7 +125,8 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed)
+             BigNatural seed,
+             bool useConstantParams)
     : MCVanillaEngine<SingleVariate,RNG,S>(process,
                                            timeSteps,
                                            timeStepsPerYear,
@@ -127,7 +136,7 @@ namespace QuantLib {
                                            requiredSamples,
                                            requiredTolerance,
                                            maxSamples,
-                                           seed) {}
+                                           seed) {use_constant_params_ = useConstantParams;}
 
 
     template <class RNG, class S>
@@ -152,6 +161,54 @@ namespace QuantLib {
               payoff->strike(),
               process->riskFreeRate()->discount(this->timeGrid().back())));
     }
+
+    template <class RNG, class S>
+    inline
+    ext::shared_ptr<typename MCEuropeanEngine_2<RNG,S>::path_generator_type>
+    MCEuropeanEngine_2<RNG,S>::pathGenerator() const {
+
+        ext::shared_ptr<GeneralizedBlackScholesProcess> process =
+            ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
+                this->process_
+            );
+        
+        Size dimensions = process->factors();
+        TimeGrid grid = this->timeGrid();
+        typename RNG::rsg_type generator = 
+            RNG::make_sequence_generator(dimensions*(grid.size()-1), this->seed_);
+        
+        if (this->use_constant_params_) {
+            Time time_of_maturity = grid.back();
+            ext::shared_ptr<StrikedTypePayoff> payoff = 
+                ext::dynamic_pointer_cast<StrikedTypePayoff>(this->arguments_.payoff);
+            double strike = payoff->strike();
+            double underlying_value_ = process->x0();
+            double risk_free_rate_ = process->riskFreeRate()->zeroRate(time_of_maturity, Continuous);
+            double dividend_ = process->dividendYield()->zeroRate(time_of_maturity, Continuous);
+            double volatility_ = process->blackVolatility()->blackVol(time_of_maturity, strike);
+            ext::shared_ptr<ConstantBlackScholesProcess> constantBlackScholesProcess(new ConstantBlackScholesProcess(underlying_value_,
+                                                                                                                    risk_free_rate_,
+                                                                                                                    volatility_,
+                                                                                                                    dividend_));
+            return ext::shared_ptr<path_generator_type>(
+                new path_generator_type(constantBlackScholesProcess,
+                                        grid,
+                                        generator,
+                                        this->brownianBridge_)
+            );
+
+        }
+
+        else {
+
+            return ext::shared_ptr<path_generator_type>(
+                new path_generator_type(process,
+                                        grid,
+                                        generator,
+                                        this->brownianBridge_)
+            );
+        }
+    };
 
 
     template <class RNG, class S>
@@ -228,6 +285,7 @@ namespace QuantLib {
     template <class RNG, class S>
     inline MakeMCEuropeanEngine_2<RNG,S>&
     MakeMCEuropeanEngine_2<RNG,S>::withConstantParameters(bool b) {
+        use_constant_params_ = b;
         return *this;
     }
 
@@ -247,7 +305,8 @@ namespace QuantLib {
                                       antithetic_,
                                       samples_, tolerance_,
                                       maxSamples_,
-                                      seed_));
+                                      seed_,
+                                      use_constant_params_));
     }
 
 
