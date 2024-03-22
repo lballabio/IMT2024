@@ -66,8 +66,9 @@ namespace QuantLib {
                 Size maxSamples,
                 BigNatural seed,
                 bool constantParameters);
+    private:
+        bool constantParameters;
 
-        bool _constantParameters;
     protected:
         // Here we override pathGenerator()
         ext::shared_ptr <path_generator_type> pathGenerator() const override ;
@@ -112,7 +113,7 @@ namespace QuantLib {
         Real tolerance_;
         bool brownianBridge_;
         BigNatural seed_;
-        bool _constantParameters;
+        bool constantParameters;
 
     };
 
@@ -154,7 +155,7 @@ namespace QuantLib {
                                                      requiredSamples,
                                                      requiredTolerance,
                                                      maxSamples,
-                                                     seed) { _constantParameters = constantParameters; }
+                                                     seed) {this->constantParameters = constantParameters;}
 
 
     template<class RNG, class S>
@@ -182,6 +183,16 @@ namespace QuantLib {
 
 
     template<class RNG, class S>
+    // Using our path generator
+    inline 
+    ext::shared_ptr<typename MCEuropeanEngine_2<RNG,S>::path_generator_type>
+    MCEuropeanEngine_2<RNG,S>::pathGenerator() const {
+        double strike = boost::dynamic_pointer_cast<PlainVanillaPayoff>(this->arguments_.payoff)->strike();        
+        Size dimensions = MCVanillaEngine<SingleVariate, RNG, S>::process_->factors();
+        TimeGrid grid = this->timeGrid();
+        pathGenerator<RNG,S> path_g;
+     return path_g.get
+    }
     inline MakeMCEuropeanEngine_2<RNG, S>::MakeMCEuropeanEngine_2(
             const boost::shared_ptr <GeneralizedBlackScholesProcess> &process)
             : process_(process), antithetic_(false),
