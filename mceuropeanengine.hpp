@@ -293,7 +293,7 @@ namespace QuantLib {
                                                                                samples_, tolerance_,
                                                                                maxSamples_,
                                                                                seed_,
-                                                                               constantParameters));
+                                                                               constantParameters_));
     }
 
 
