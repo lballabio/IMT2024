@@ -191,7 +191,7 @@ namespace QuantLib {
         Size dimensions = MCVanillaEngine<SingleVariate, RNG, S>::process_->factors();
         TimeGrid grid = this->timeGrid();
         pathGenerator<RNG,S> path_g;
-     return path_g.getPathGenerator(grid,
+        return path_g.getPathGenerator(grid,
                                 RNG::make_sequence_generator(dimensions * (grid.size() - 1), this->seed_),
                                 this->process_, 
                                 this->brownianBridge_,
@@ -199,12 +199,14 @@ namespace QuantLib {
                                 constantParameters);
      )
     }
+
+    template<class RNG, class S>
     inline MakeMCEuropeanEngine_2<RNG, S>::MakeMCEuropeanEngine_2(
             const boost::shared_ptr <GeneralizedBlackScholesProcess> &process)
             : process_(process), antithetic_(false),
               steps_(Null<Size>()), stepsPerYear_(Null<Size>()),
               samples_(Null<Size>()), maxSamples_(Null<Size>()),
-              tolerance_(Null<Real>()), brownianBridge_(false), seed_(0) { _constantParameters = true; }
+              tolerance_(Null<Real>()), brownianBridge_(false), seed_(0) {constantParameters = true; }
 
     template<class RNG, class S>
     inline MakeMCEuropeanEngine_2<RNG, S> &
