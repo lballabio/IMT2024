@@ -25,10 +25,26 @@ namespace QuantLib {
                           double strike,
                           bool _constantParameters) {
       // Here we distinguish both cases. At first, constant case
-      if (_constantParameters) {
-          ext::shared_ptr<GeneralizedBlackScholesProcess> BS_process =
-              ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(process_);
-          Time extract_time = grid.back();
-        
-    }
+         if (_constantParameters) {
+            ext::shared_ptr <GeneralizedBlackScholesProcess> blackSC_process =
+                ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(this->process_);
+            Time time = grid.back();
+            double const_div = blackSC_process->dividendYield()->zeroRate(time, Continuous, NoFrequency);
+            double const_rf = blackSC_process->riskFreeRate()->zeroRate(time, Continuous, NoFrequency);
+            double const_volatility_ = blackSC_process->blackVolatility()->blackVol(time, strike);
+            double spot = blackSC_process->x0();
+
+            //constantblackscholesprocess* const_blackSC_process = new constantblackscholesprocess(spot, const_rf, const_div, const_volatility_);
+            ext::shared_ptr <constantblackscholesprocess> const_blackSC_process(new constantblackscholesprocess(spot, const_rf, const_div, const_volatility_));
+            return ext::shared_ptr<path_generator_type>(
+                new path_generator_type(const_blackSC_process, grid,generator,MCVanillaEngine<SingleVariate, RNG, S>::brownianBridge_));
+            } else {
+                //ext::shared_ptr<GeneralizedBlackScholesProcess> process_;  
+                return ext::shared_ptr<path_generator_type>(
+                        new path_generator_type(MCVanillaEngine<SingleVariate, RNG, S>::process_, grid,
+                                                generator, MCVanillaEngine<SingleVariate, RNG, S>::brownianBridge_));
+            }
+        }        
+    };
 }
+
