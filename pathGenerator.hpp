@@ -43,10 +43,10 @@ namespace QuantLib {
                     new path_generator_type(const_blackSC_process, grid,generator,MCVanillaEngine<SingleVariate, RNG, S>::brownianBridge_));
                 } else {
                     return ext::shared_ptr<path_generator_type>(
-                                new path_generator_type(blackSCprocess_,
+                                new path_generator_type(process_,
                                             grid, generator, brownianBridge_));
                 }
             }        
         };
 }
-
+#endif
