@@ -117,6 +117,21 @@ namespace QuantLib {
                     this->arguments_.pastFixings));
     }
 
+    template <class RNG, class S>
+    inline
+    ext::shared_ptr<typename MCDiscreteArithmeticASEngine_2<RNG,S>::path_generator_type>
+    MCDiscreteArithmeticASEngine_2<RNG,S>::pathGenerator() const {
+        double strike = boost::dynamic_pointer_cast<PlainVanillaPayoff>(this->arguments_.payoff)->strike();        
+        Size dimensions = MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>::process_->factors();
+        TimeGrid grid = this->timeGrid();
+        pathGeneratorConstruct<RNG,S> pathg;
+        return pathg.getPathGenerator(grid,
+                                RNG::make_sequence_generator(dimensions * (grid.size() - 1), this->seed_),
+                                this->process_, 
+                                this->brownianBridge_,
+                                strike,
+                                constantParameters);
+    }
 
     
     template <class RNG = PseudoRandom, class S = Statistics>
@@ -141,13 +156,14 @@ namespace QuantLib {
         Real tolerance_;
         bool brownianBridge_ = true;
         BigNatural seed_ = 0;
+        bool constantParameters_;
     };
 
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG, S>::MakeMCDiscreteArithmeticASEngine_2(
         ext::shared_ptr<GeneralizedBlackScholesProcess> process)
     : process_(std::move(process)), samples_(Null<Size>()), maxSamples_(Null<Size>()),
-      tolerance_(Null<Real>()) {}
+      tolerance_(Null<Real>()), constantParameters_(false) {}
 
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG,S>&
@@ -201,7 +217,8 @@ namespace QuantLib {
 
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG,S>&
-    MakeMCDiscreteArithmeticASEngine_2<RNG,S>::withConstantParameters(bool b) {
+    MakeMCDiscreteArithmeticASEngine_2<RNG,S>::withConstantParameters(bool boo) {
+        constantParameters_ = boo
         return *this;
     }
 
@@ -215,7 +232,8 @@ namespace QuantLib {
                                                       antithetic_,
                                                       samples_, tolerance_,
                                                       maxSamples_,
-                                                      seed_));
+                                                      seed_,
+                                                      constantParameters_));
     }
 
 }
