@@ -68,41 +68,8 @@ namespace QuantLib {
 
         bool _constantParameters;
     protected:
-
-        ext::shared_ptr <path_generator_type> pathGenerator() const override {
-
-            Size dimensions = MCEuropeanEngine_2<RNG, S>::process_->factors();
-            TimeGrid grid = this->timeGrid();
-            typename RNG::rsg_type generator =
-                    RNG::make_sequence_generator(dimensions * (grid.size() - 1),
-                                                 MCVanillaEngine<SingleVariate, RNG, S>::seed_);
-            if (_constantParameters) {
-                ext::shared_ptr <GeneralizedBlackScholesProcess> blackSC_process =
-                        ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
-                                this->process_);
-                Time time = grid.back();
-                double strike = ext::dynamic_pointer_cast<StrikedTypePayoff>(
-                        MCEuropeanEngine_2<RNG, S>::arguments_.payoff)->strike();
-
-                double const_div = blackSC_process->dividendYield()->zeroRate(time, Continuous, NoFrequency);
-                double const_rf = blackSC_process->riskFreeRate()->zeroRate(time, Continuous, NoFrequency);
-                double const_volatility_ = blackSC_process->blackVolatility()->blackVol(time, strike);
-                double spot = blackSC_process->x0();
-             
-                ext::shared_ptr <constantblackscholesprocess> const_blackSC_process(
-                        new constantblackscholesprocess(spot, const_rf, const_div, const_volatility_));
-
-                return ext::shared_ptr<path_generator_type>(new path_generator_type(const_blackSC_process, grid,
-                                                                                    generator,
-                                                                                    MCVanillaEngine<SingleVariate, RNG, S>::brownianBridge_));
-            } else {
-                //ext::shared_ptr<GeneralizedBlackScholesProcess> process_;  
-                return ext::shared_ptr<path_generator_type>(
-                        new path_generator_type(MCVanillaEngine<SingleVariate, RNG, S>::process_, grid,
-                                                generator, MCVanillaEngine<SingleVariate, RNG, S>::brownianBridge_));
-            }
-        }
-
+        // Here we override pathGenerator()
+        ext::shared_ptr <path_generator_type> pathGenerator() const override ;
         boost::shared_ptr <path_pricer_type> pathPricer() const;
 
     };
