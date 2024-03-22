@@ -29,6 +29,7 @@
 #include <ql/pricingengines/asian/mc_discr_arith_av_strike.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <utility>
+#include "pathGenerator.hpp"
 
 namespace QuantLib {
 
@@ -53,8 +54,13 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed);
+             BigNatural seed,
+             bool constantParameters);
+      private:
+        bool constantParameters;
       protected:
+        // Override path_generator
+        ext::shared_ptr<path_generator_type> pathGenerator() const ovveride;
         ext::shared_ptr<path_pricer_type> pathPricer() const override;
     };
 
@@ -70,7 +76,8 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed)
+             BigNatural seed,
+             bool constantParameters)
     : MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>(process,
                                                               brownianBridge,
                                                               antitheticVariate,
@@ -111,7 +118,7 @@ namespace QuantLib {
     }
 
 
-
+    
     template <class RNG = PseudoRandom, class S = Statistics>
     class MakeMCDiscreteArithmeticASEngine_2 {
       public:
