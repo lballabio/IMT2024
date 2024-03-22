@@ -18,13 +18,13 @@ namespace QuantLib {
           typename McSimulation<SingleVariate, RNG,S>::path_generator_type
               path_generator_type;
     
-        auto getPathGenerator(TimeGrid grid,
+          auto getPathGenerator(TimeGrid grid,
                               typename RNG::rsg_type generator,
                               boost::shared_ptr<StochasticProcess> process_,
                               bool brownianBridge_,
                               double strike,
                               bool _constantParameters) {
-          // Here we distinguish both cases. At first, constant case
+              // Here we distinguish both cases. At first, constant case
              if (_constantParameters) {
                 
                 ext::shared_ptr <GeneralizedBlackScholesProcess> blackSC_process =
