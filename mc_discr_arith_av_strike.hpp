@@ -218,7 +218,7 @@ namespace QuantLib {
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG,S>&
     MakeMCDiscreteArithmeticASEngine_2<RNG,S>::withConstantParameters(bool boo) {
-        constantParameters_ = boo
+        constantParameters_ = boo ;
         return *this;
     }
 
