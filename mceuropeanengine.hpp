@@ -88,8 +88,7 @@ namespace QuantLib {
                 double const_rf = blackSC_process->riskFreeRate()->zeroRate(time, Continuous, NoFrequency);
                 double const_volatility_ = blackSC_process->blackVolatility()->blackVol(time, strike);
                 double spot = blackSC_process->x0();
-
-                //constantblackscholesprocess* const_blackSC_process = new constantblackscholesprocess(spot, const_rf, const_div, const_volatility_);
+             
                 ext::shared_ptr <constantblackscholesprocess> const_blackSC_process(
                         new constantblackscholesprocess(spot, const_rf, const_div, const_volatility_));
 
