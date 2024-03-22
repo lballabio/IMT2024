@@ -29,6 +29,7 @@
 #include <ql/pricingengines/asian/mc_discr_arith_av_strike.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <utility>
+#include "utils.hpp"
 
 namespace QuantLib {
 
@@ -53,9 +54,20 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed);
+             BigNatural seed,
+             bool constantParameters);
       protected:
         ext::shared_ptr<path_pricer_type> pathPricer() const override;
+
+        // MCDiscreteArithmeticASEngine_2 inheritates from MCDiscreteAveragingAsianEngineBase which has the method pathGenerator() we need to modify
+        ext::shared_ptr<path_generator_type> pathGenerator() const override;
+
+        /*
+        New attribute that will be used in pathGenerator() method
+        If true, we will generate the paths using a black scholes process with constant parameters extracted from the original black scholes process parameters
+        If false, the paths will be generated as usual using the original black scholes process
+        */
+        bool constantParameters;
     };
 
 
@@ -70,7 +82,8 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed)
+             BigNatural seed,
+             bool constantParameters) // Needed to set the new attribute of MCDiscreteArithmeticASEngine_2
     : MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>(process,
                                                               brownianBridge,
                                                               antitheticVariate,
@@ -78,7 +91,7 @@ namespace QuantLib {
                                                               requiredSamples,
                                                               requiredTolerance,
                                                               maxSamples,
-                                                              seed) {}
+                                                              seed), constantParameters(constantParameters) {} // Needed to set the new attribute of MCDiscreteArithmeticASEngine_2
 
     template <class RNG, class S>
     inline
@@ -111,6 +124,50 @@ namespace QuantLib {
     }
 
 
+    // Redefinition of pathGenerator() method to take into account the changes imposed by the value of constantParameters attribute
+    template <class RNG, class S>
+    inline
+    ext::shared_ptr<typename MCDiscreteArithmeticASEngine_2<RNG,S>::path_generator_type>
+    MCDiscreteArithmeticASEngine_2<RNG,S>::pathGenerator() const {
+
+        // As before (see MCDiscreteAveragingAsianEngineBase)
+        Size dimensions = this->process_->factors();
+        TimeGrid grid = this->timeGrid();
+        typename RNG::rsg_type generator =
+            RNG::make_sequence_generator(dimensions*(grid.size()-1),this->seed_);
+        
+        // NEW : if we want to use constant parameters for generating paths
+        if (this->constantParameters) {
+            
+            /*
+            We need to cast the process (which is currently a StochasticProcess) to a
+            GeneralizedBlackScholesProcess as our method createConstantBlackScholesProcess takes 
+            such class in argument 
+            */
+            ext::shared_ptr<GeneralizedBlackScholesProcess> process =
+            ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
+                this->process_);
+
+            // Create ConstantBlackScholesProcess using constant parameters extracted from the original process
+            ext::shared_ptr<ConstantBlackScholesProcess> constantProcess = createConstantBlackScholesProcess(process, this->arguments_);
+            
+            /*
+            The path generator type will be set according to our new constant process
+            i.e. generated paths will be based on the constant process
+            */
+            return ext::shared_ptr<typename MCDiscreteArithmeticASEngine_2<RNG,S>::path_generator_type>(
+                new path_generator_type(constantProcess, grid, generator, this->brownianBridge_));
+
+        } else {
+            
+            // As before (see MCDiscreteAveragingAsianEngineBase)
+            return ext::shared_ptr<typename MCDiscreteArithmeticASEngine_2<RNG,S>::path_generator_type>(
+                new path_generator_type(this->process_, grid, generator, this->brownianBridge_));
+
+        }
+
+    }
+
 
     template <class RNG = PseudoRandom, class S = Statistics>
     class MakeMCDiscreteArithmeticASEngine_2 {
@@ -124,7 +181,7 @@ namespace QuantLib {
         MakeMCDiscreteArithmeticASEngine_2& withMaxSamples(Size samples);
         MakeMCDiscreteArithmeticASEngine_2& withSeed(BigNatural seed);
         MakeMCDiscreteArithmeticASEngine_2& withAntitheticVariate(bool b = true);
-        MakeMCDiscreteArithmeticASEngine_2& withConstantParameters(bool b = true);
+        MakeMCDiscreteArithmeticASEngine_2& withConstantParameters(bool b = true); // Needed to set the new attribute of MCDiscreteArithmeticASEngine_2
         // conversion to pricing engine
         operator ext::shared_ptr<PricingEngine>() const;
       private:
@@ -134,13 +191,14 @@ namespace QuantLib {
         Real tolerance_;
         bool brownianBridge_ = true;
         BigNatural seed_ = 0;
+        bool constantParameters_; // Needed to set the new attribute of MCDiscreteArithmeticASEngine_2
     };
 
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG, S>::MakeMCDiscreteArithmeticASEngine_2(
         ext::shared_ptr<GeneralizedBlackScholesProcess> process)
     : process_(std::move(process)), samples_(Null<Size>()), maxSamples_(Null<Size>()),
-      tolerance_(Null<Real>()) {}
+      tolerance_(Null<Real>()), constantParameters_(false) {} // Needed to set the new attribute of MCDiscreteArithmeticASEngine_2
 
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG,S>&
@@ -195,6 +253,7 @@ namespace QuantLib {
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG,S>&
     MakeMCDiscreteArithmeticASEngine_2<RNG,S>::withConstantParameters(bool b) {
+        constantParameters_ = b; // Needed to set the new attribute of MCDiscreteArithmeticASEngine_2
         return *this;
     }
 
@@ -208,7 +267,8 @@ namespace QuantLib {
                                                       antithetic_,
                                                       samples_, tolerance_,
                                                       maxSamples_,
-                                                      seed_));
+                                                      seed_,
+                                                      constantParameters_)); // Needed to set the new attribute of MCDiscreteArithmeticASEngine_2
     }
 
 }
