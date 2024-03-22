@@ -1,5 +1,5 @@
 #ifndef pathGenerator_hpp
-#define patheGenerator_hpp
+#define pathGenerator_hpp
 
 #include <ql/exercise.hpp>
 #include <ql/instruments/barrieroption.hpp>
