@@ -30,6 +30,10 @@
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvariancecurve.hpp>
+#include "constantblackscholesprocess.hpp"
+#include "choicegenerator.hpp"
+
+
 
 namespace QuantLib {
 
@@ -60,9 +64,14 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed);
+             BigNatural seed,
+	         bool constant); // adding our boolean parameter
+      private :
+      	bool constant;
       protected:
-        boost::shared_ptr<path_pricer_type> pathPricer() const;
+        // Here we override the path generator
+        ext::shared_ptr<path_generator_type> pathGenerator() const override; 
+        boost::shared_ptr<path_pricer_type> pathPricer() const override;
     };
 
     //! Monte Carlo European engine factory
@@ -90,6 +99,7 @@ namespace QuantLib {
         Real tolerance_;
         bool brownianBridge_;
         BigNatural seed_;
+	    bool constant_;
     };
 
     class EuropeanPathPricer_2 : public PathPricer<Path> {
@@ -117,7 +127,8 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed)
+             BigNatural seed,
+	         bool constant)
     : MCVanillaEngine<SingleVariate,RNG,S>(process,
                                            timeSteps,
                                            timeStepsPerYear,
@@ -127,7 +138,9 @@ namespace QuantLib {
                                            requiredSamples,
                                            requiredTolerance,
                                            maxSamples,
-                                           seed) {}
+                                           seed) {
+        this->constant = constant;
+    }
 
 
     template <class RNG, class S>
@@ -153,6 +166,25 @@ namespace QuantLib {
               process->riskFreeRate()->discount(this->timeGrid().back())));
     }
 
+    // We re-define the constructor calling our getGenerator function from choicegenerator.hpp
+    template <class RNG, class S>
+    inline 
+    ext::shared_ptr<typename MCEuropeanEngine_2<RNG,S>::path_generator_type>
+    MCEuropeanEngine_2<RNG,S>::pathGenerator() const {
+
+        double strike = boost::dynamic_pointer_cast<PlainVanillaPayoff>(this->arguments_.payoff)->strike();
+        Size size = MCVanillaEngine<SingleVariate, RNG, S>::process_->factors();
+        TimeGrid timegrid = this->timeGrid();
+        builder<RNG,S> gen;
+        return gen.getGenerator(timegrid,
+                    RNG::make_sequence_generator(size * (timegrid.size()-1), this->seed_),
+                    this->process_,
+                    this->brownianBridge_,
+                    strike,
+                    constant);
+
+    }
+
 
     template <class RNG, class S>
     inline MakeMCEuropeanEngine_2<RNG,S>::MakeMCEuropeanEngine_2(
@@ -160,7 +192,9 @@ namespace QuantLib {
     : process_(process), antithetic_(false),
       steps_(Null<Size>()), stepsPerYear_(Null<Size>()),
       samples_(Null<Size>()), maxSamples_(Null<Size>()),
-      tolerance_(Null<Real>()), brownianBridge_(false), seed_(0) {}
+      tolerance_(Null<Real>()), brownianBridge_(false), seed_(0), constant_(false) {}
+
+
 
     template <class RNG, class S>
     inline MakeMCEuropeanEngine_2<RNG,S>&
@@ -228,6 +262,7 @@ namespace QuantLib {
     template <class RNG, class S>
     inline MakeMCEuropeanEngine_2<RNG,S>&
     MakeMCEuropeanEngine_2<RNG,S>::withConstantParameters(bool b) {
+	    constant_ = b;  // add the constant parameter as a boolean param of the engine
         return *this;
     }
 
@@ -247,7 +282,8 @@ namespace QuantLib {
                                       antithetic_,
                                       samples_, tolerance_,
                                       maxSamples_,
-                                      seed_));
+                                      seed_,
+				                      constant_));
     }
 
 

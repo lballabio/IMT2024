@@ -28,6 +28,7 @@
 #include <ql/pricingengines/asian/mcdiscreteasianenginebase.hpp>
 #include <ql/pricingengines/asian/mc_discr_arith_av_strike.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
+#include "choicegenerator.hpp"
 #include <utility>
 
 namespace QuantLib {
@@ -53,9 +54,14 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed);
+             BigNatural seed,
+             bool constant);
+      private:
+        bool constant;
       protected:
-        ext::shared_ptr<path_pricer_type> pathPricer() const override;
+        // Override path generator
+        ext::shared_ptr<path_generator_type> pathGenerator() const override; 
+        boost::shared_ptr<path_pricer_type> pathPricer() const override;
     };
 
 
@@ -70,7 +76,8 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed)
+             BigNatural seed,
+             bool constant)
     : MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>(process,
                                                               brownianBridge,
                                                               antitheticVariate,
@@ -78,7 +85,9 @@ namespace QuantLib {
                                                               requiredSamples,
                                                               requiredTolerance,
                                                               maxSamples,
-                                                              seed) {}
+                                                              seed) {
+        this->constant = constant;
+                                                              }
 
     template <class RNG, class S>
     inline
@@ -110,6 +119,24 @@ namespace QuantLib {
                     this->arguments_.pastFixings));
     }
 
+    template <class RNG, class S>
+    inline 
+    ext::shared_ptr<typename MCDiscreteArithmeticASEngine_2<RNG,S>::path_generator_type>
+    MCDiscreteArithmeticASEngine_2<RNG,S>::pathGenerator() const {
+
+        double strike = boost::dynamic_pointer_cast<PlainVanillaPayoff>(this->arguments_.payoff)->strike();
+        Size size = MCDiscreteAveragingAsianEngineBase<SingleVariate, RNG, S>::process_->factors();
+        TimeGrid timegrid = this->timeGrid();
+        builder<RNG,S> gen;
+        return gen.getGenerator(timegrid,
+                    RNG::make_sequence_generator(size * (timegrid.size()-1), this->seed_),
+                    this->process_,
+                    this->brownianBridge_,
+                    strike,
+                    constant);
+
+    }
+
 
 
     template <class RNG = PseudoRandom, class S = Statistics>
@@ -134,13 +161,14 @@ namespace QuantLib {
         Real tolerance_;
         bool brownianBridge_ = true;
         BigNatural seed_ = 0;
+        bool constant_;
     };
 
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG, S>::MakeMCDiscreteArithmeticASEngine_2(
         ext::shared_ptr<GeneralizedBlackScholesProcess> process)
     : process_(std::move(process)), samples_(Null<Size>()), maxSamples_(Null<Size>()),
-      tolerance_(Null<Real>()) {}
+      tolerance_(Null<Real>()), constant_(false) {}
 
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG,S>&
@@ -195,6 +223,7 @@ namespace QuantLib {
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG,S>&
     MakeMCDiscreteArithmeticASEngine_2<RNG,S>::withConstantParameters(bool b) {
+        constant_ = b;
         return *this;
     }
 
@@ -208,7 +237,8 @@ namespace QuantLib {
                                                       antithetic_,
                                                       samples_, tolerance_,
                                                       maxSamples_,
-                                                      seed_));
+                                                      seed_,
+                                                      constant_));
     }
 
 }
