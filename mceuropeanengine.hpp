@@ -113,7 +113,7 @@ namespace QuantLib {
         Real tolerance_;
         bool brownianBridge_;
         BigNatural seed_;
-        bool constantParameters;
+        bool constantParameters_;
 
     };
 
@@ -205,7 +205,7 @@ namespace QuantLib {
             : process_(process), antithetic_(false),
               steps_(Null<Size>()), stepsPerYear_(Null<Size>()),
               samples_(Null<Size>()), maxSamples_(Null<Size>()),
-              tolerance_(Null<Real>()), brownianBridge_(false), seed_(0) {constantParameters = true; }
+              tolerance_(Null<Real>()), brownianBridge_(false), seed_(0), constantParameters_(false) {}
 
     template<class RNG, class S>
     inline MakeMCEuropeanEngine_2<RNG, S> &
