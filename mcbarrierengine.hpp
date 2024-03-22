@@ -32,6 +32,7 @@
 #include <ql/pricingengines/barrier/mcbarrierengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <utility>
+#include "extract_constant_values.hpp"
 
 namespace QuantLib {
 
@@ -75,7 +76,8 @@ namespace QuantLib {
                           Real requiredTolerance,
                           Size maxSamples,
                           bool isBiased,
-                          BigNatural seed);
+                          BigNatural seed,
+                          bool useConstantParams);
         void calculate() const override {
             Real spot = process_->x0();
             QL_REQUIRE(spot > 0.0, "negative or null underlying given");
@@ -92,15 +94,10 @@ namespace QuantLib {
       protected:
         // McSimulation implementation
         TimeGrid timeGrid() const override;
-        ext::shared_ptr<path_generator_type> pathGenerator() const override {
-            TimeGrid grid = timeGrid();
-            typename RNG::rsg_type gen =
-                RNG::make_sequence_generator(grid.size()-1,seed_);
-            return ext::shared_ptr<path_generator_type>(
-                         new path_generator_type(process_,
-                                                 grid, gen, brownianBridge_));
-        }
+
         ext::shared_ptr<path_pricer_type> pathPricer() const override;
+
+        ext::shared_ptr<path_generator_type> pathGenerator() const override;
         // data members
         ext::shared_ptr<GeneralizedBlackScholesProcess> process_;
         Size timeSteps_, timeStepsPerYear_;
@@ -109,6 +106,7 @@ namespace QuantLib {
         bool isBiased_;
         bool brownianBridge_;
         BigNatural seed_;
+        bool use_constant_params_;
     };
 
 
@@ -136,6 +134,7 @@ namespace QuantLib {
         Size steps_, stepsPerYear_, samples_, maxSamples_;
         Real tolerance_;
         BigNatural seed_ = 0;
+        bool use_constant_params_;
     };
 
 
@@ -152,11 +151,13 @@ namespace QuantLib {
         Real requiredTolerance,
         Size maxSamples,
         bool isBiased,
-        BigNatural seed)
+        BigNatural seed,
+        bool useConstantParams)
     : McSimulation<SingleVariate, RNG, S>(antitheticVariate, false), process_(std::move(process)),
       timeSteps_(timeSteps), timeStepsPerYear_(timeStepsPerYear), requiredSamples_(requiredSamples),
       maxSamples_(maxSamples), requiredTolerance_(requiredTolerance), isBiased_(isBiased),
-      brownianBridge_(brownianBridge), seed_(seed) {
+      brownianBridge_(brownianBridge), seed_(seed), use_constant_params_(useConstantParams) {
+
         QL_REQUIRE(timeSteps != Null<Size>() ||
                    timeStepsPerYear != Null<Size>(),
                    "no time steps provided");
@@ -227,6 +228,41 @@ namespace QuantLib {
                     sequenceGen));
         }
     }
+
+    template <class RNG, class S>
+    inline
+    ext::shared_ptr<typename MCBarrierEngine_2<RNG,S>::path_generator_type>
+    MCBarrierEngine_2<RNG,S>::pathGenerator() const {
+        
+        Size dimensions = process_->factors();
+        TimeGrid grid = this->timeGrid();
+        typename RNG::rsg_type generator = 
+            RNG::make_sequence_generator(dimensions*(grid.size()-1), this->seed_);
+        
+        if (this->use_constant_params_) {
+
+            ext::shared_ptr<ConstantBlackScholesProcess> constantBlackScholesProcess =
+                extract_constant_values(process_, this->arguments_);
+
+            return ext::shared_ptr<path_generator_type>(
+                new path_generator_type(constantBlackScholesProcess,
+                                        grid,
+                                        generator,
+                                        this->brownianBridge_)
+            );
+
+        }
+
+        else {
+
+            return ext::shared_ptr<path_generator_type>(
+                new path_generator_type(process_,
+                                        grid,
+                                        generator,
+                                        this->brownianBridge_)
+            );
+        }
+    };
 
 
     template <class RNG, class S>
@@ -308,6 +344,7 @@ namespace QuantLib {
     template <class RNG, class S>
     inline MakeMCBarrierEngine_2<RNG,S>&
     MakeMCBarrierEngine_2<RNG,S>::withConstantParameters(bool b) {
+        use_constant_params_ = b;
         return *this;
     }
 
@@ -327,7 +364,8 @@ namespace QuantLib {
                                      samples_, tolerance_,
                                      maxSamples_,
                                      biased_,
-                                     seed_));
+                                     seed_,
+                                     use_constant_params_));
     }
 
 }

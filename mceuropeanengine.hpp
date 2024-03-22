@@ -31,6 +31,7 @@
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvariancecurve.hpp>
 #include "constantblackscholesprocess.hpp"
+#include "extract_constant_values.hpp"
 
 namespace QuantLib {
 
@@ -178,18 +179,10 @@ namespace QuantLib {
             RNG::make_sequence_generator(dimensions*(grid.size()-1), this->seed_);
         
         if (this->use_constant_params_) {
-            Time time_of_maturity = grid.back();
-            ext::shared_ptr<StrikedTypePayoff> payoff = 
-                ext::dynamic_pointer_cast<StrikedTypePayoff>(this->arguments_.payoff);
-            double strike = payoff->strike();
-            double underlying_value_ = process->x0();
-            double risk_free_rate_ = process->riskFreeRate()->zeroRate(time_of_maturity, Continuous);
-            double dividend_ = process->dividendYield()->zeroRate(time_of_maturity, Continuous);
-            double volatility_ = process->blackVolatility()->blackVol(time_of_maturity, strike);
-            ext::shared_ptr<ConstantBlackScholesProcess> constantBlackScholesProcess(new ConstantBlackScholesProcess(underlying_value_,
-                                                                                                                    risk_free_rate_,
-                                                                                                                    volatility_,
-                                                                                                                    dividend_));
+
+            ext::shared_ptr<ConstantBlackScholesProcess> constantBlackScholesProcess =
+                extract_constant_values(process, this->arguments_);
+
             return ext::shared_ptr<path_generator_type>(
                 new path_generator_type(constantBlackScholesProcess,
                                         grid,
