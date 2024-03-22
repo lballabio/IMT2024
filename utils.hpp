@@ -11,6 +11,9 @@
 #include <ql/math/distributions/normaldistribution.hpp>
 #include <ql/methods/lattices/binomialtree.hpp>
 #include <tuple>
+#include <chrono>
+#include <fstream>
+#include <vector>
 
 using namespace QuantLib;
 
@@ -40,6 +43,23 @@ inline ext::shared_ptr<ConstantBlackScholesProcess> createConstantBlackScholesPr
         process->x0(), q, riskFreeRate, v);
 }
 
+
+// Additional function returning the NPV and computation time to calculate this NPV using 
+// an engine for a given option
+template<typename OptionType>
+std::tuple<Real, double> computeNPVAndTime(const boost::shared_ptr<PricingEngine>& engine, 
+                            const boost::shared_ptr<OptionType>& option) {
+    Real npv;
+    double computationTime;
+
+    option->setPricingEngine(engine);
+
+    auto startTime = std::chrono::steady_clock::now();
+    npv = option->NPV();
+    auto endTime = std::chrono::steady_clock::now();
+    computationTime = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count() / 1000000.0;
+    return std::make_tuple(npv, computationTime);
+}
 
 
 #endif // UTILS_HPP
