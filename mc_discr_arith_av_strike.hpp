@@ -60,7 +60,7 @@ namespace QuantLib {
         bool constantParameters;
       protected:
         // Override path_generator
-        ext::shared_ptr<path_generator_type> pathGenerator() const ovveride;
+        ext::shared_ptr<path_generator_type> pathGenerator() const override;
         ext::shared_ptr<path_pricer_type> pathPricer() const override;
     };
 
