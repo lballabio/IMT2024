@@ -256,7 +256,7 @@ namespace QuantLib {
     inline MakeMCBarrierEngine_2<RNG, S>::MakeMCBarrierEngine_2(
         ext::shared_ptr<GeneralizedBlackScholesProcess> process)
     : process_(std::move(process)), steps_(Null<Size>()), stepsPerYear_(Null<Size>()),
-      samples_(Null<Size>()), maxSamples_(Null<Size>()), tolerance_(Null<Real>()) {}
+      samples_(Null<Size>()), maxSamples_(Null<Size>()), tolerance_(Null<Real>()), constantParamters_(false) {}
 
     template <class RNG, class S>
     inline MakeMCBarrierEngine_2<RNG,S>&
@@ -330,7 +330,8 @@ namespace QuantLib {
 
     template <class RNG, class S>
     inline MakeMCBarrierEngine_2<RNG,S>&
-    MakeMCBarrierEngine_2<RNG,S>::withConstantParameters(bool b) {
+    MakeMCBarrierEngine_2<RNG,S>::withConstantParameters(bool boo) {
+        constantParameters_ =boo;
         return *this;
     }
 
@@ -350,7 +351,8 @@ namespace QuantLib {
                                      samples_, tolerance_,
                                      maxSamples_,
                                      biased_,
-                                     seed_));
+                                     seed_,
+                                     constantParameters_));
     }
 
 }
