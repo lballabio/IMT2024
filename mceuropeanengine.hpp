@@ -32,6 +32,7 @@
 #include <ql/termstructures/volatility/equityfx/blackvariancecurve.hpp>
 #include <iostream>
 #include "constantblackscholesprocess.hpp"
+#include "pathGenerator.hpp"
 
 namespace QuantLib {
 
