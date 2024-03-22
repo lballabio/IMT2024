@@ -32,6 +32,7 @@
 #include <ql/pricingengines/barrier/mcbarrierengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <utility>
+#include "choicegenerator.hpp"
 
 namespace QuantLib {
 
@@ -75,7 +76,11 @@ namespace QuantLib {
                           Real requiredTolerance,
                           Size maxSamples,
                           bool isBiased,
-                          BigNatural seed);
+                          BigNatural seed,
+                          bool constant);
+      private:
+        bool constant;
+
         void calculate() const override {
             Real spot = process_->x0();
             QL_REQUIRE(spot > 0.0, "negative or null underlying given");
@@ -92,14 +97,7 @@ namespace QuantLib {
       protected:
         // McSimulation implementation
         TimeGrid timeGrid() const override;
-        ext::shared_ptr<path_generator_type> pathGenerator() const override {
-            TimeGrid grid = timeGrid();
-            typename RNG::rsg_type gen =
-                RNG::make_sequence_generator(grid.size()-1,seed_);
-            return ext::shared_ptr<path_generator_type>(
-                         new path_generator_type(process_,
-                                                 grid, gen, brownianBridge_));
-        }
+        ext::shared_ptr<path_generator_type> pathGenerator() const override;
         ext::shared_ptr<path_pricer_type> pathPricer() const override;
         // data members
         ext::shared_ptr<GeneralizedBlackScholesProcess> process_;
@@ -136,6 +134,7 @@ namespace QuantLib {
         Size steps_, stepsPerYear_, samples_, maxSamples_;
         Real tolerance_;
         BigNatural seed_ = 0;
+        bool constant_;
     };
 
 
@@ -152,7 +151,8 @@ namespace QuantLib {
         Real requiredTolerance,
         Size maxSamples,
         bool isBiased,
-        BigNatural seed)
+        BigNatural seed,
+        bool constant)
     : McSimulation<SingleVariate, RNG, S>(antitheticVariate, false), process_(std::move(process)),
       timeSteps_(timeSteps), timeStepsPerYear_(timeStepsPerYear), requiredSamples_(requiredSamples),
       maxSamples_(maxSamples), requiredTolerance_(requiredTolerance), isBiased_(isBiased),
@@ -229,11 +229,29 @@ namespace QuantLib {
     }
 
 
+    // We re-define the constructor calling our getGenerator function from choicegenerator.hpp
+    template <class RNG, class S>
+    inline 
+    ext::shared_ptr<typename MCBarrierEngine_2<RNG,S>::path_generator_type>
+    MCBarrierEngine_2<RNG,S>::pathGenerator() const {
+
+        double strike = boost::dynamic_pointer_cast<PlainVanillaPayoff>(this->arguments_.payoff)->strike();
+        TimeGrid timegrid = this->timeGrid();
+        builder<RNG,S> gen;
+        return gen.getGenerator(timegrid,
+                    RNG::make_sequence_generator(timegrid.size()-1,seed_),
+                    process_,
+                    brownianBridge_,
+                    strike,
+                    constant);
+
+    }
+
     template <class RNG, class S>
     inline MakeMCBarrierEngine_2<RNG, S>::MakeMCBarrierEngine_2(
         ext::shared_ptr<GeneralizedBlackScholesProcess> process)
     : process_(std::move(process)), steps_(Null<Size>()), stepsPerYear_(Null<Size>()),
-      samples_(Null<Size>()), maxSamples_(Null<Size>()), tolerance_(Null<Real>()) {}
+      samples_(Null<Size>()), maxSamples_(Null<Size>()), tolerance_(Null<Real>()), constant_(false) {}
 
     template <class RNG, class S>
     inline MakeMCBarrierEngine_2<RNG,S>&
@@ -308,6 +326,7 @@ namespace QuantLib {
     template <class RNG, class S>
     inline MakeMCBarrierEngine_2<RNG,S>&
     MakeMCBarrierEngine_2<RNG,S>::withConstantParameters(bool b) {
+        constant_ = b;
         return *this;
     }
 
@@ -327,7 +346,8 @@ namespace QuantLib {
                                      samples_, tolerance_,
                                      maxSamples_,
                                      biased_,
-                                     seed_));
+                                     seed_,
+                                     constant_));
     }
 
 }
