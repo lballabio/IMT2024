@@ -189,7 +189,7 @@ namespace QuantLib {
         double strike = boost::dynamic_pointer_cast<PlainVanillaPayoff>(this->arguments_.payoff)->strike();        
         Size dimensions = MCVanillaEngine<SingleVariate, RNG, S>::process_->factors();
         TimeGrid grid = this->timeGrid();
-        pathGenerator<RNG,S> pathg;
+        pathGeneratorConstruct<RNG,S> pathg;
 
         return pathg.getPathGenerator(grid,
                                 RNG::make_sequence_generator(dimensions * (grid.size() - 1), this->seed_),
