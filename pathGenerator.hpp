@@ -30,7 +30,7 @@ namespace QuantLib {
                 // If parameters are constant, construct a constant Black-Scholes process
                 ext::shared_ptr<GeneralizedBlackScholesProcess> blackSC_process =
                     ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(process_);
-                // Extracting the parameters here
+                // This is where we write the code to extract parameters once and for all
                 Time time = grid.back();
                 double const_div = blackSC_process->dividendYield()->zeroRate(time, Continuous, NoFrequency);
                 double const_rf = blackSC_process->riskFreeRate()->zeroRate(time, Continuous, NoFrequency);
