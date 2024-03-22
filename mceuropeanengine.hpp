@@ -190,7 +190,7 @@ namespace QuantLib {
         double strike = boost::dynamic_pointer_cast<PlainVanillaPayoff>(this->arguments_.payoff)->strike();        
         Size dimensions = MCVanillaEngine<SingleVariate, RNG, S>::process_->factors();
         TimeGrid grid = this->timeGrid();
-        pathGenerator<RNG,S> path_g;
+        pathGenerator() path_g;
         return path_g.getPathGenerator(grid,
                                 RNG::make_sequence_generator(dimensions * (grid.size() - 1), this->seed_),
                                 this->process_, 
@@ -294,7 +294,7 @@ namespace QuantLib {
                                                                                samples_, tolerance_,
                                                                                maxSamples_,
                                                                                seed_,
-                                                                               _constantParameters));
+                                                                               constantParameters));
     }
 
 
