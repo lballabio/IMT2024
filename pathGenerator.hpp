@@ -10,24 +10,25 @@
 
 namespace QuantLib {
 
+    // Class template for generating path generators
     template <class RNG = PseudoRandom, class S = Statistics>
-    class pathGeneratorConstruct{
-          public:
-    
-          typedef
-          typename McSimulation<SingleVariate, RNG,S>::path_generator_type
-              path_generator_type;
-    
-          auto getPathGenerator(TimeGrid grid,
-                              typename RNG::rsg_type generator,
-                              boost::shared_ptr<StochasticProcess> process_,
-                              bool brownianBridge_,
-                              double strike,
-                              bool _constantParameters) {
-              // Here we distinguish both cases. At first, constant case
-             if (_constantParameters) {
-                
-                ext::shared_ptr <GeneralizedBlackScholesProcess> blackSC_process =
+    class pathGeneratorConstruct {
+    public:
+        
+        // Define the path generator type based on McSimulation
+        typedef typename McSimulation<SingleVariate, RNG, S>::path_generator_type path_generator_type;
+
+        // Method for getting a path generator
+        auto getPathGenerator(TimeGrid grid,
+                               typename RNG::rsg_type generator,
+                               boost::shared_ptr<StochasticProcess> process_,
+                               bool brownianBridge_,
+                               double strike,
+                               bool _constantParameters) {
+            // Here we distinguish between constant and non-constant parameter cases
+            if (_constantParameters) {
+                // If parameters are constant, construct a constant Black-Scholes process
+                ext::shared_ptr<GeneralizedBlackScholesProcess> blackSC_process =
                     ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(process_);
                 // Extracting the parameters here
                 Time time = grid.back();
@@ -35,18 +36,20 @@ namespace QuantLib {
                 double const_rf = blackSC_process->riskFreeRate()->zeroRate(time, Continuous, NoFrequency);
                 double const_volatility_ = blackSC_process->blackVolatility()->blackVol(time, strike);
                 double spot = blackSC_process->x0();
-    
-                // Creating the constant BS Process
-                ext::shared_ptr <constantblackscholesprocess> const_blackSC_process(new constantblackscholesprocess(spot, const_rf, const_div, const_volatility_));
+
+                // Creating the constant Black-Scholes Process
+                ext::shared_ptr<constantblackscholesprocess> const_blackSC_process(new constantblackscholesprocess(spot, const_rf, const_div, const_volatility_));
                 return ext::shared_ptr<path_generator_type>(
-                    // Generator path with constant BS
-                    new path_generator_type(const_blackSC_process, grid,generator,brownianBridge_));
-                } else {
-                    return ext::shared_ptr<path_generator_type>(
-                                new path_generator_type(process_,
-                                            grid, generator, brownianBridge_));
-                }
-            }        
-        };
+                    // Generate path with constant Black-Scholes process
+                    new path_generator_type(const_blackSC_process, grid, generator, brownianBridge_));
+            } else {
+                // If parameters are not constant, directly generate path
+                return ext::shared_ptr<path_generator_type>(
+                    new path_generator_type(process_, grid, generator, brownianBridge_));
+            }
+        }        
+    };
 }
+
 #endif
+
