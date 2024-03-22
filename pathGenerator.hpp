@@ -11,7 +11,7 @@
 namespace QuantLib {
 
     template <class RNG = PseudoRandom, class S = Statistics>
-    class pathGenerator{
+    class pathGeneratorConstruct{
           public:
     
           typedef
