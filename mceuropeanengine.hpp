@@ -44,7 +44,7 @@ namespace QuantLib {
     */
     template <class RNG = PseudoRandom, class S = Statistics>
     class MCEuropeanEngine_2 : public MCVanillaEngine<SingleVariate,RNG,S> {
-      public:
+    public:
         typedef
         typename MCVanillaEngine<SingleVariate,RNG,S>::path_generator_type
             path_generator_type;
@@ -65,9 +65,9 @@ namespace QuantLib {
              Size maxSamples,
              BigNatural seed,
              bool additional_constParameters);
-      protected:
+    protected:
         boost::shared_ptr<path_pricer_type> pathPricer() const override;
-    private :
+ 
         bool additional_constParameters_;
 
         ext::shared_ptr<path_generator_type> pathGenerator() const override {
