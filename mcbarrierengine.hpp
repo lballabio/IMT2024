@@ -32,6 +32,7 @@
 #include <ql/pricingengines/barrier/mcbarrierengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <utility>
+#include "pathGenerator.hpp"
 
 namespace QuantLib {
 
@@ -75,19 +76,22 @@ namespace QuantLib {
                           Real requiredTolerance,
                           Size maxSamples,
                           bool isBiased,
-                          BigNatural seed);
-        void calculate() const override {
-            Real spot = process_->x0();
-            QL_REQUIRE(spot > 0.0, "negative or null underlying given");
-            QL_REQUIRE(!triggered(spot), "barrier touched");
-            McSimulation<SingleVariate,RNG,S>::calculate(requiredTolerance_,
-                                                         requiredSamples_,
-                                                         maxSamples_);
-            results_.value = this->mcModel_->sampleAccumulator().mean();
-            if (RNG::allowsErrorEstimate)
-            results_.errorEstimate =
-                this->mcModel_->sampleAccumulator().errorEstimate();
-        }
+                          BigNatural seed,
+                          bool constantParameters);
+        private:
+          bool constantParameters; 
+          void calculate() const override {
+              Real spot = process_->x0();
+              QL_REQUIRE(spot > 0.0, "negative or null underlying given");
+              QL_REQUIRE(!triggered(spot), "barrier touched");
+              McSimulation<SingleVariate,RNG,S>::calculate(requiredTolerance_,
+                                                           requiredSamples_,
+                                                           maxSamples_);
+              results_.value = this->mcModel_->sampleAccumulator().mean();
+              if (RNG::allowsErrorEstimate)
+              results_.errorEstimate =
+                  this->mcModel_->sampleAccumulator().errorEstimate();
+          }
 
       protected:
         // McSimulation implementation
@@ -136,6 +140,7 @@ namespace QuantLib {
         Size steps_, stepsPerYear_, samples_, maxSamples_;
         Real tolerance_;
         BigNatural seed_ = 0;
+        bool constantParameters_;
     };
 
 
@@ -152,7 +157,8 @@ namespace QuantLib {
         Real requiredTolerance,
         Size maxSamples,
         bool isBiased,
-        BigNatural seed)
+        BigNatural seed,
+        bool constantParameters)
     : McSimulation<SingleVariate, RNG, S>(antitheticVariate, false), process_(std::move(process)),
       timeSteps_(timeSteps), timeStepsPerYear_(timeStepsPerYear), requiredSamples_(requiredSamples),
       maxSamples_(maxSamples), requiredTolerance_(requiredTolerance), isBiased_(isBiased),
