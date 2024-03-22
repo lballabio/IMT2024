@@ -182,22 +182,21 @@ namespace QuantLib {
     }
 
 
-    template<class RNG, class S>
-    // Using our path generator
-    inline 
+    template <class RNG, class S>
+    inline
     ext::shared_ptr<typename MCEuropeanEngine_2<RNG,S>::path_generator_type>
     MCEuropeanEngine_2<RNG,S>::pathGenerator() const {
         double strike = boost::dynamic_pointer_cast<PlainVanillaPayoff>(this->arguments_.payoff)->strike();        
         Size dimensions = MCVanillaEngine<SingleVariate, RNG, S>::process_->factors();
         TimeGrid grid = this->timeGrid();
-        pathGenerator() path_g;
-        return path_g.getPathGenerator(grid,
+        pathGenerator<RNG,S> pathg;
+
+        return pathg.getPathGenerator(grid,
                                 RNG::make_sequence_generator(dimensions * (grid.size() - 1), this->seed_),
                                 this->process_, 
                                 this->brownianBridge_,
                                 strike,
                                 constantParameters);
-     )
     }
 
     template<class RNG, class S>
