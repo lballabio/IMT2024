@@ -28,7 +28,7 @@ namespace QuantLib {
              if (_constantParameters) {
                 
                 ext::shared_ptr <GeneralizedBlackScholesProcess> blackSC_process =
-                    ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(this->process_);
+                    ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(process_);
                 // Extracting the parameters here
                 Time time = grid.back();
                 double const_div = blackSC_process->dividendYield()->zeroRate(time, Continuous, NoFrequency);
