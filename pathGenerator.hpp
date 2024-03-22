@@ -40,7 +40,7 @@ namespace QuantLib {
                 ext::shared_ptr <constantblackscholesprocess> const_blackSC_process(new constantblackscholesprocess(spot, const_rf, const_div, const_volatility_));
                 return ext::shared_ptr<path_generator_type>(
                     // Generator path with constant BS
-                    new path_generator_type(const_blackSC_process, grid,generator,MCVanillaEngine<SingleVariate, RNG, S>::brownianBridge_));
+                    new path_generator_type(const_blackSC_process, grid,generator,brownianBridge_));
                 } else {
                     return ext::shared_ptr<path_generator_type>(
                                 new path_generator_type(process_,
