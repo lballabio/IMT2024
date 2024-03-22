@@ -96,6 +96,7 @@ namespace QuantLib {
       protected:
         // McSimulation implementation
         TimeGrid timeGrid() const override;
+        // We remove the redefinition of pathGenerator here because we redifined it with our class path Generator
         ext::shared_ptr<path_generator_type> pathGenerator() const override;
         ext::shared_ptr<path_pricer_type> pathPricer() const override;
         // data members
@@ -231,13 +232,12 @@ namespace QuantLib {
     inline
     ext::shared_ptr<typename MCBarrierEngine_2<RNG,S>::path_generator_type>
     MCBarrierEngine_2<RNG,S>::pathGenerator() const {
-        double strike = boost::dynamic_pointer_cast<PlainVanillaPayoff>(this->arguments_.payoff)->strike();        
-        Size dimensions = MCVanillaEngine<SingleVariate, RNG, S>::process_->factors();
+        double strike = boost::dynamic_pointer_cast<PlainVanillaPayoff>(this->arguments_.payoff)->strike();
         TimeGrid grid = this->timeGrid();
         pathGeneratorConstruct<RNG,S> pathg;
 
         return pathg.getPathGenerator(grid,
-                                RNG::make_sequence_generator(dimensions * (grid.size() - 1), this->seed_),
+                                RNG::make_sequence_generator(grid.size()-1,seed_),
                                 this->process_, 
                                 this->brownianBridge_,
                                 strike,
