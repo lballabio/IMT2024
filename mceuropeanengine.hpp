@@ -272,8 +272,8 @@ namespace QuantLib {
 
     template<class RNG, class S>
     inline MakeMCEuropeanEngine_2<RNG, S> &
-    MakeMCEuropeanEngine_2<RNG, S>::withConstantParameters(bool constantParameters) {
-        constantParameters = constantParameters;
+    MakeMCEuropeanEngine_2<RNG, S>::withConstantParameters(bool boo) {
+        constantParameters_ = boo;
         return *this;
     }
 
