@@ -130,7 +130,7 @@ namespace QuantLib {
         MakeMCEuropeanEngine_2& withMaxSamples(Size samples);
         MakeMCEuropeanEngine_2& withSeed(BigNatural seed);
         MakeMCEuropeanEngine_2& withAntitheticVariate(bool b = true);
-        MakeMCEuropeanEngine_2& withConstantParameters(bool b = true);
+        MakeMCEuropeanEngine_2& withConstantParameters(bool additional_constParameters);
         // conversion to pricing engine
         operator boost::shared_ptr<PricingEngine>() const;
       private:
