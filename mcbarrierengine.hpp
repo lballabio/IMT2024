@@ -106,6 +106,10 @@ namespace QuantLib {
         bool isBiased_;
         bool brownianBridge_;
         BigNatural seed_;
+        /*
+        if it's set to true, the paths will be generated using constant paramters of BS. 
+        Otherwise, the generation process will run as usual.
+        */
         bool use_constant_params_;
     };
 

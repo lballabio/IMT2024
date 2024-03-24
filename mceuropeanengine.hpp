@@ -70,6 +70,10 @@ namespace QuantLib {
         // Override the path generator to use the ConstantBlackScholes process when generating paths
         ext::shared_ptr<path_generator_type> pathGenerator() const override;
 
+        /*
+        if it's set to true, the paths will be generated using constant paramters of BS. 
+        Otherwise, the generation process will run as usual.
+        */
         bool use_constant_params_;
     };
 

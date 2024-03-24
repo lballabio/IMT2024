@@ -271,6 +271,21 @@ int main() {
 
         // All done
 
+    /*
+        This section defines a vector of values for time steps and number of samples. We aim to use 
+        European and Barrier Options to conduct comparative analysis through graphs, evaluating the 
+        impact of using constant Black-Scholes parameters when generating paths in Monte Carlo Engines.
+
+        The objective is twofold: to assess the trade-off between computational time and accuracy, and 
+        to analyze the performance characteristics of the computation, particularly its elapsed time.
+
+        Initial findings suggest that using constant parameters can lead to a reduction in 
+        computation time, at the expense of some accuracy (error is of order 1e-15), particularly evident 
+        in the case of barrier options. Additionally, we observe that computational performance, as measured by elapsed 
+        time, demonstrates a linear relationship with both the number of time steps and the number of 
+        samples used in the Monte Carlo simulation.
+    */
+
         std::vector<Size> timeStepsRange = {5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
         std::vector<Size> samplesRange = {10, 100, 1000, 10000, 100000, 1000000, 10000000};
 

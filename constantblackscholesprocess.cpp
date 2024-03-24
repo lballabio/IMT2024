@@ -13,10 +13,17 @@ namespace QuantLib {
         volatility=volatility_;
         dividend=dividend_;}
 
+    //Market value of the underlying
     Real ConstantBlackScholesProcess::x0() const {
         return underlying_value;
     }
-
+    
+    /*
+    dlnS_t = (r-d-(sigma)^2/2)dt + sigma * dW_t
+    the drift and diffusion methods are virtual in the base class.
+    the drift method returns the one for the logarithm.
+    the diffusion method returns the local volatility. 
+    */
     Real ConstantBlackScholesProcess::drift(Time t, Real x) const {
         return risk_free_rate - dividend - 0.5*volatility*volatility;
     }
