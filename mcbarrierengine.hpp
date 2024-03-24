@@ -32,6 +32,7 @@
 #include <ql/pricingengines/barrier/mcbarrierengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <utility>
+#include "extract_process.hpp"
 
 namespace QuantLib {
 
@@ -100,32 +101,10 @@ namespace QuantLib {
             typename RNG::rsg_type gen =
                 RNG::make_sequence_generator(grid.size()-1,seed_);
             
-            if(additional_constParameters){
-
-                ext::shared_ptr<GeneralizedBlackScholesProcess> BS_process = ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(this -> process_);
-
-                // Parameters of the BS Process
-                Time time=grid.back();
-                double strike = ext::dynamic_pointer_cast<StrikedTypePayoff>(arguments_.payoff) -> strike();
-                
-                double Rf_rate_ = BS_process -> riskFreeRate() -> zeroRate(time,Continuous);
-                double Dividend_ = BS_process -> dividendYield() -> zeroRate(time,Continuous);
-                double Volatility_ = BS_process -> blackVolatility() -> blackVol(time,strike);
-                double Underlying_Value_ = BS_process -> x0();
-
-                ext::shared_ptr<ConstantBlackScholesProcess> cst_BS_process(new ConstantBlackScholesProcess(Underlying_Value_,Rf_rate_,Volatility_,Dividend_));
-
-                return ext::shared_ptr<path_generator_type>(
-                    new path_generator_type(
-                        cst_BS_process, // New path generator with the const_BS_Process
-                        grid,
-                        gen,
-                        brownianBridge_));
-            }
-            else{
-                return ext::shared_ptr<path_generator_type>(
-                new path_generator_type(process_,grid, gen, brownianBridge_));
-            }
+            ext::shared_ptr<StochasticProcess> process = extract_process(additional_constParameters,grid,this->process_,this->arguments_.payoff);
+            return ext::shared_ptr<path_generator_type>(
+                new path_generator_type(process,grid, gen,
+                    this -> brownianBridge_));
         }
 
 
@@ -188,7 +167,8 @@ namespace QuantLib {
     : McSimulation<SingleVariate, RNG, S>(antitheticVariate, false), process_(std::move(process)),
       timeSteps_(timeSteps), timeStepsPerYear_(timeStepsPerYear), requiredSamples_(requiredSamples),
       maxSamples_(maxSamples), requiredTolerance_(requiredTolerance), isBiased_(isBiased),
-      brownianBridge_(brownianBridge), seed_(seed) {
+      brownianBridge_(brownianBridge), seed_(seed){
+        this->additional_constParameters=additional_constParameters;
         QL_REQUIRE(timeSteps != Null<Size>() ||
                    timeStepsPerYear != Null<Size>(),
                    "no time steps provided");

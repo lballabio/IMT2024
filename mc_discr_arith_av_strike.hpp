@@ -28,6 +28,7 @@
 #include <ql/pricingengines/asian/mcdiscreteasianenginebase.hpp>
 #include <ql/pricingengines/asian/mc_discr_arith_av_strike.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
+#include "extract_process.hpp"
 #include <utility>
 
 namespace QuantLib {
@@ -68,41 +69,10 @@ namespace QuantLib {
             RNG::make_sequence_generator(dimensions*(grid.size()-1),
                 MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>::seed_);
 
-            // boolean True
-            if (additional_constParameters_){
-
-                ext::shared_ptr<GeneralizedBlackScholesProcess> BS_process = 
-                ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(this -> process_);
-
-                // Parameters of the BS Process
-                Time time=grid.back();
-                double strike = ext::dynamic_pointer_cast<StrikedTypePayoff>
-                (MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>::arguments_.payoff) -> strike();
-                
-                double Rf_rate_ = BS_process -> riskFreeRate() -> zeroRate(time,Continuous);
-                double Dividend_ = BS_process -> dividendYield() -> zeroRate(time,Continuous);
-                double Volatility_ = BS_process -> blackVolatility() -> blackVol(time,strike);
-                double Underlying_Value_ = BS_process -> x0();
-
-                ext::shared_ptr<ConstantBlackScholesProcess> cst_BS_process(
-                    new ConstantBlackScholesProcess(Underlying_Value_,Rf_rate_,Volatility_,Dividend_));
-
-                return ext::shared_ptr<path_generator_type>(
-                    new path_generator_type(
-                        cst_BS_process, // New path generator with the const_BS_Process
-                        grid,
-                        generator,
-                        MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>::brownianBridge_));
-            } 
-            // boolean False
-            else {
-                return ext::shared_ptr<path_generator_type>(
-                    new path_generator_type(
-                        MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>::process_, //we return classical one
-                        grid,
-                        generator,
-                        MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>::brownianBridge_));
-            }
+            ext::shared_ptr<StochasticProcess> process = extract_process(additional_constParameters_,grid,this->process_,this->arguments_.payoff);
+            return ext::shared_ptr<path_generator_type>(
+                new path_generator_type(process,grid, generator,
+                    MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>::brownianBridge_));
         }
     };
         
