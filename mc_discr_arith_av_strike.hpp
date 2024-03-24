@@ -28,6 +28,7 @@
 #include <ql/pricingengines/asian/mcdiscreteasianenginebase.hpp>
 #include <ql/pricingengines/asian/mc_discr_arith_av_strike.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
+#include "extract_process.hpp"
 #include <utility>
 
 namespace QuantLib {
@@ -53,13 +54,30 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed);
+             BigNatural seed,
+             bool additional_constParameters);
       protected:
+        bool additional_constParameters_;
         ext::shared_ptr<path_pricer_type> pathPricer() const override;
+
+
+        ext::shared_ptr<path_generator_type> pathGenerator() const override {
+            Size dimensions = MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>::process_->factors();
+            TimeGrid grid = this -> timeGrid();
+
+            typename RNG::rsg_type generator = 
+            RNG::make_sequence_generator(dimensions*(grid.size()-1),
+                MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>::seed_);
+
+            ext::shared_ptr<StochasticProcess> process = extract_process(additional_constParameters_,grid,this->process_,this->arguments_.payoff);
+            return ext::shared_ptr<path_generator_type>(
+                new path_generator_type(process,grid, generator,
+                    MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>::brownianBridge_));
+        }
     };
+        
 
-
-    // inline definitions
+        // inline definitions
 
     template <class RNG, class S>
     inline
@@ -70,7 +88,8 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed)
+             BigNatural seed,
+             bool additional_constParameters)
     : MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>(process,
                                                               brownianBridge,
                                                               antitheticVariate,
@@ -78,7 +97,7 @@ namespace QuantLib {
                                                               requiredSamples,
                                                               requiredTolerance,
                                                               maxSamples,
-                                                              seed) {}
+                                                              seed) {additional_constParameters_ = additional_constParameters;}
 
     template <class RNG, class S>
     inline
@@ -124,7 +143,7 @@ namespace QuantLib {
         MakeMCDiscreteArithmeticASEngine_2& withMaxSamples(Size samples);
         MakeMCDiscreteArithmeticASEngine_2& withSeed(BigNatural seed);
         MakeMCDiscreteArithmeticASEngine_2& withAntitheticVariate(bool b = true);
-        MakeMCDiscreteArithmeticASEngine_2& withConstantParameters(bool b = true);
+        MakeMCDiscreteArithmeticASEngine_2& withConstantParameters(bool additional_constParameters);
         // conversion to pricing engine
         operator ext::shared_ptr<PricingEngine>() const;
       private:
@@ -134,6 +153,7 @@ namespace QuantLib {
         Real tolerance_;
         bool brownianBridge_ = true;
         BigNatural seed_ = 0;
+        bool additional_constParameters_;
     };
 
     template <class RNG, class S>
@@ -194,7 +214,8 @@ namespace QuantLib {
 
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG,S>&
-    MakeMCDiscreteArithmeticASEngine_2<RNG,S>::withConstantParameters(bool b) {
+    MakeMCDiscreteArithmeticASEngine_2<RNG,S>::withConstantParameters(bool additional_constParameters) {
+        additional_constParameters_ = additional_constParameters ;
         return *this;
     }
 
@@ -208,7 +229,8 @@ namespace QuantLib {
                                                       antithetic_,
                                                       samples_, tolerance_,
                                                       maxSamples_,
-                                                      seed_));
+                                                      seed_,
+                                                      additional_constParameters_));
     }
 
 }
