@@ -13,11 +13,12 @@ namespace QuantLib{
 
     // Struct to hold NPV error calculation and time difference between the non constant and constant cases
     struct NPVErrorTime {
-        Real Error;
+        Real errorConstantParams;
+        Real errorNonConstantParams;
         double time;
     };
 
-    template <class OptionType, class MakeMCEngine>
+    template <class OptionType, class NewMakeMCEngine, class OldMakeMCEngine>
 
     inline ext::shared_ptr<NPVErrorTime> calculate_npv_time(
         OptionType& option,
@@ -26,10 +27,19 @@ namespace QuantLib{
         Size samples,
         Size mcSeed)
     {
+        // Calculate NPV with old engines
+        option.setPricingEngine(
+            OldMakeMCEngine(bsmProcess)
+            .withSteps(timeSteps)
+            .withSamples(samples)
+            .withSeed(mcSeed)
+        );
+
+        Real oldNPV = option.NPV();
 
         // Calculate NPV with non-constant parameters
         option.setPricingEngine(
-            MakeMCEngine(bsmProcess)
+            NewMakeMCEngine(bsmProcess)
             .withSteps(timeSteps)
             .withSamples(samples)
             .withSeed(mcSeed)
@@ -43,7 +53,7 @@ namespace QuantLib{
 
         // Calculate NPV with constant parameters
         option.setPricingEngine(
-            MakeMCEngine(bsmProcess)
+            NewMakeMCEngine(bsmProcess)
             .withSteps(timeSteps)
             .withSamples(samples)
             .withSeed(mcSeed)
@@ -57,12 +67,14 @@ namespace QuantLib{
 
         // Calculate difference in time and error
         double diffTime = durationNonConstant - durationConstant;
-        double error = std::abs(constantNPV - nonConstantNPV);
+        double errorConstantParams = std::abs(constantNPV - oldNPV);
+        double errorNonConstantParams = std::abs(nonConstantNPV - oldNPV);
 
 
         // Create and return NPVErrorTime struct
         auto result = ext::make_shared<NPVErrorTime>();
-        result->Error = error;
+        result->errorConstantParams = errorConstantParams;
+        result->errorNonConstantParams = errorNonConstantParams;
         result->time = diffTime;
         return result;
         
