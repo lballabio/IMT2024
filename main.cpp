@@ -7,6 +7,7 @@
 #include "mceuropeanengine.hpp"
 #include "mc_discr_arith_av_strike.hpp"
 #include "mcbarrierengine.hpp"
+#include "calculate_npv.hpp"
 #include <ql/instruments/europeanoption.hpp>
 #include <ql/instruments/asianoption.hpp>
 #include <ql/instruments/barrieroption.hpp>
@@ -21,6 +22,8 @@
 #include <ql/utilities/dataformatters.hpp>
 #include <iostream>
 #include <chrono>
+#include <fstream>
+#include <vector>
 
 using namespace QuantLib;
 
@@ -267,6 +270,85 @@ int main() {
         std::cout << spacer << NPV << spacer << us / 1000000 << std::endl;
 
         // All done
+
+    /*
+        This section defines a vector of values for time steps and number of samples. We aim to use 
+        European and Barrier Options to conduct comparative analysis through graphs, evaluating the 
+        impact of using constant Black-Scholes parameters when generating paths in Monte Carlo Engines.
+
+        The objective is twofold: to assess the trade-off between computational time and accuracy, and 
+        to analyze the performance characteristics of the computation, particularly its elapsed time.
+
+        Initial findings suggest that using constant parameters can lead to a reduction in 
+        computation time, at the expense of some accuracy (error is of order 1e-15), particularly evident 
+        in the case of barrier options. Additionally, we observe that computational performance, as measured by elapsed 
+        time, demonstrates a linear relationship with both the number of time steps and the number of 
+        samples used in the Monte Carlo simulation.
+    */
+
+        std::vector<Size> timeStepsRange = {5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+        std::vector<Size> samplesRange = {10, 100, 1000, 10000, 100000, 1000000, 10000000};
+
+        std::ofstream outputFile("results_time.txt");
+        outputFile << "Option Type" << ";" << "Time Steps" << ";" 
+                    << "Samples" << ";" << "Error (Non constant)" << ";" 
+                    << "Error (constant)" << ";" << "Time(non constant) - Time(Constant) in (s)" << std::endl;
+
+        for(Size delta : timeStepsRange) {
+
+            ext::shared_ptr<NPVErrorTime> resultEuropeanOption = calculate_npv_time<EuropeanOption, MakeMCEuropeanEngine_2<PseudoRandom>, MakeMCEuropeanEngine<PseudoRandom>>(
+                europeanOption, 
+                bsmProcess, 
+                delta, 
+                samples, 
+                mcSeed);
+            outputFile << "European Option" << ";" << delta << ";" 
+                        << samples << ";" << resultEuropeanOption->errorNonConstantParams << ";"
+                         << resultEuropeanOption->errorConstantParams << ";" << resultEuropeanOption->time << std::endl;
+
+            ext::shared_ptr<NPVErrorTime> resultBarrierOption = calculate_npv_time<BarrierOption, MakeMCBarrierEngine_2<PseudoRandom>, MakeMCBarrierEngine<PseudoRandom>>(
+                barrierOption, 
+                bsmProcess, 
+                delta, 
+                samples, 
+                mcSeed);
+            outputFile << "Barrier Option" << ";" << delta << ";" 
+                        << samples << ";" << resultBarrierOption->errorNonConstantParams << ";" 
+                        << resultBarrierOption->errorConstantParams << ";" << resultBarrierOption->time << std::endl;
+        }
+
+        outputFile.close();
+
+        std::ofstream outputFile2("results_samples.txt");
+        outputFile2 << "Option Type" << ";" << "Time Steps" << ";" 
+                    << "Samples" << ";" << "Error (Non constant)" << ";" 
+                    << "Error (constant)" << ";" << "Time(non constant) - Time(Constant) in (s)" << std::endl;
+        
+        for(Size nsamples : samplesRange) {
+
+            ext::shared_ptr<NPVErrorTime> resultEuropeanOption = calculate_npv_time<EuropeanOption, MakeMCEuropeanEngine_2<PseudoRandom>, MakeMCEuropeanEngine<PseudoRandom>>(
+                europeanOption, 
+                bsmProcess, 
+                timeSteps, 
+                nsamples, 
+                mcSeed);
+            outputFile2 << "European Option" << ";" << timeSteps << ";" 
+                        << nsamples << ";" << resultEuropeanOption->errorNonConstantParams << ";"
+                         << resultEuropeanOption->errorConstantParams << ";" << resultEuropeanOption->time << std::endl;
+
+            ext::shared_ptr<NPVErrorTime> resultBarrierOption = calculate_npv_time<BarrierOption, MakeMCBarrierEngine_2<PseudoRandom>, MakeMCBarrierEngine<PseudoRandom>>(
+                barrierOption, 
+                bsmProcess, 
+                timeSteps, 
+                nsamples, 
+                mcSeed);
+            outputFile2 << "Barrier Option" << ";" << timeSteps << ";" 
+                        << nsamples << ";" << resultBarrierOption->errorNonConstantParams << ";" 
+                        << resultBarrierOption->errorConstantParams << ";" << resultBarrierOption->time << std::endl;
+        }
+
+        outputFile2.close();
+
 
         return 0;
 

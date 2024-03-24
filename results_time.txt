@@ -1,0 +1,23 @@
+Option Type;Time Steps;Samples;Error (Non constant);Error (constant);Time(non constant) - Time(Constant) in (s)
+European Option;5;1000000;0;7.99361e-15;0.923842
+Barrier Option;5;1000000;0;0.00116344;0.931896
+European Option;10;1000000;0;0;1.81567
+Barrier Option;10;1000000;0;0.00121933;1.84989
+European Option;20;1000000;0;1.33227e-14;3.61291
+Barrier Option;20;1000000;0;0.00125556;3.64818
+European Option;30;1000000;0;4.44089e-14;5.48681
+Barrier Option;30;1000000;0;0.00108236;5.51088
+European Option;40;1000000;0;4.70735e-14;7.29959
+Barrier Option;40;1000000;0;0.00122723;7.32123
+European Option;50;1000000;0;8.70415e-14;9.15653
+Barrier Option;50;1000000;0;0.00130011;9.17909
+European Option;60;1000000;0;1.77636e-14;10.9575
+Barrier Option;60;1000000;0;0.00125282;11.0035
+European Option;70;1000000;0;1.0747e-13;12.7741
+Barrier Option;70;1000000;0;0.00116079;12.8063
+European Option;80;1000000;0;4.17444e-14;14.6267
+Barrier Option;80;1000000;0;0.00118475;14.6349
+European Option;90;1000000;0;2.30926e-14;16.4146
+Barrier Option;90;1000000;0;0.00131489;16.4866
+European Option;100;1000000;0;3.73035e-14;18.2199
+Barrier Option;100;1000000;0;0.00119613;18.2895
