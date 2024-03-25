@@ -53,9 +53,14 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed);
+             BigNatural seed,
+             bool usingConstantParameters);
       protected:
         ext::shared_ptr<path_pricer_type> pathPricer() const override;
+
+        ext::shared_ptr<path_generator_type> pathGenerator() const override;
+
+        bool usingConstantParameters_;
     };
 
 
@@ -70,7 +75,8 @@ namespace QuantLib {
              Size requiredSamples,
              Real requiredTolerance,
              Size maxSamples,
-             BigNatural seed)
+             BigNatural seed,
+             bool usingConstantParameters)
     : MCDiscreteAveragingAsianEngineBase<SingleVariate,RNG,S>(process,
                                                               brownianBridge,
                                                               antitheticVariate,
@@ -78,7 +84,7 @@ namespace QuantLib {
                                                               requiredSamples,
                                                               requiredTolerance,
                                                               maxSamples,
-                                                              seed) {}
+                                                              seed) {usingConstantParameters_ = usingConstantParameters;}
 
     template <class RNG, class S>
     inline
@@ -110,6 +116,37 @@ namespace QuantLib {
                     this->arguments_.pastFixings));
     }
 
+    template <class RNG, class S>
+ext::shared_ptr<typename MCDiscreteArithmeticASEngine_2<RNG,S>::path_generator_type>
+MCDiscreteArithmeticASEngine_2<RNG,S>::pathGenerator() const {
+    TimeGrid grid = this->timeGrid();
+    typename RNG::rsg_type gen = RNG::make_sequence_generator(grid.size()-1, this->seed_);
+
+    if (this->usingConstantParameters_) {
+        ext::shared_ptr<GeneralizedBlackScholesProcess> process =
+            ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
+                this->process_);
+
+        Time currentTime = grid.back();
+        Real spot = process->x0();
+        Rate riskFreeRate = process->riskFreeRate()->zeroRate(currentTime, Continuous);
+        Rate dividendYield = process->dividendYield()->zeroRate(currentTime, Continuous);
+        Volatility volatility = process->blackVolatility()->blackVol(currentTime, spot);
+
+        ext::shared_ptr<ConstantBlackScholesProcess> constantProcess(new ConstantBlackScholesProcess(
+            spot,  
+            riskFreeRate,
+            volatility,
+            dividendYield));
+ 
+        return ext::shared_ptr<typename MCDiscreteArithmeticASEngine_2<RNG,S>::path_generator_type>(
+            new path_generator_type(constantProcess, grid, gen, this->brownianBridge_));
+    } else {
+        return ext::shared_ptr<typename MCDiscreteArithmeticASEngine_2<RNG,S>::path_generator_type>(
+            new path_generator_type(this->process_, grid, gen, this->brownianBridge_));
+    }
+}
+
 
 
     template <class RNG = PseudoRandom, class S = Statistics>
@@ -134,6 +171,7 @@ namespace QuantLib {
         Real tolerance_;
         bool brownianBridge_ = true;
         BigNatural seed_ = 0;
+        bool usingConstantParameters_;
     };
 
     template <class RNG, class S>
@@ -195,6 +233,7 @@ namespace QuantLib {
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG,S>&
     MakeMCDiscreteArithmeticASEngine_2<RNG,S>::withConstantParameters(bool b) {
+        usingConstantParameters_ = b;
         return *this;
     }
 
@@ -208,7 +247,8 @@ namespace QuantLib {
                                                       antithetic_,
                                                       samples_, tolerance_,
                                                       maxSamples_,
-                                                      seed_));
+                                                      seed_,
+                                                      usingConstantParameters_));
     }
 
 }
