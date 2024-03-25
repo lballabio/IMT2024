@@ -244,7 +244,7 @@ namespace QuantLib {
             double dividendYield = this->process_->dividendYield()->zeroRate(currentTime, Continuous);
             double volatility = this->process_->blackVolatility()->blackVol(currentTime, spot);
 
-            ext::shared_ptr<ConstantBlackScholesProcess> constantProcess(new ConstantBlackScholesProcess(spot, riskFreeRate, dividendYield, volatility));
+            ext::shared_ptr<ConstantBlackScholesProcess> constantProcess(new ConstantBlackScholesProcess(spot, riskFreeRate, volatility, dividendYield));
 
             return ext::shared_ptr<typename MCBarrierEngine_2<RNG,S>::path_generator_type>(
                 new path_generator_type(constantProcess, grid, gen, this->brownianBridge_));
