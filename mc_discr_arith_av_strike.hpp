@@ -60,7 +60,7 @@ namespace QuantLib {
 
         ext::shared_ptr<path_generator_type> pathGenerator() const override;
 
-        bool usingConstantParameters;
+        bool usingConstantParameters_;
     };
 
 
@@ -84,7 +84,7 @@ namespace QuantLib {
                                                               requiredSamples,
                                                               requiredTolerance,
                                                               maxSamples,
-                                                              seed), usingConstantParameters(usingConstantParameters) {}
+                                                              seed) {usingConstantParameters_ = usingConstantParameters;}
 
     template <class RNG, class S>
     inline
@@ -122,10 +122,11 @@ MCDiscreteArithmeticASEngine_2<RNG,S>::pathGenerator() const {
     TimeGrid grid = this->timeGrid();
     typename RNG::rsg_type gen = RNG::make_sequence_generator(grid.size()-1, this->seed_);
 
-    if (this->usingConstantParameters) {
+    if (this->usingConstantParameters_) {
         ext::shared_ptr<GeneralizedBlackScholesProcess> process =
             ext::dynamic_pointer_cast<GeneralizedBlackScholesProcess>(
                 this->process_);
+
         Time currentTime = grid.back();
         Real spot = process->x0();
         Rate riskFreeRate = process->riskFreeRate()->zeroRate(currentTime, Continuous);
@@ -177,7 +178,7 @@ MCDiscreteArithmeticASEngine_2<RNG,S>::pathGenerator() const {
     inline MakeMCDiscreteArithmeticASEngine_2<RNG, S>::MakeMCDiscreteArithmeticASEngine_2(
         ext::shared_ptr<GeneralizedBlackScholesProcess> process)
     : process_(std::move(process)), samples_(Null<Size>()), maxSamples_(Null<Size>()),
-      tolerance_(Null<Real>()), usingConstantParameters_(false) {}
+      tolerance_(Null<Real>()) {}
 
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG,S>&
@@ -232,6 +233,7 @@ MCDiscreteArithmeticASEngine_2<RNG,S>::pathGenerator() const {
     template <class RNG, class S>
     inline MakeMCDiscreteArithmeticASEngine_2<RNG,S>&
     MakeMCDiscreteArithmeticASEngine_2<RNG,S>::withConstantParameters(bool b) {
+        usingConstantParameters_ = b;
         return *this;
     }
 
